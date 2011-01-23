@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>
+Chat interface
+</title>
+
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function() {
+    var chatlog = $('#chatlog');
+    var chat_message = $('#chat_message');
+    var session_id = '{{SESSION_ID}}';
+    chat_message.keypress(function(e) {
+        if(e.keyCode == 13) {
+            $.ajax({
+                type: "POST",
+                url: '/',
+                data: ({session_id : session_id, chat_message : chat_message.val()}),
+                dataType: 'text',
+                success: function(msg) {
+                    // The server returns text, not HTML, so newlines need to be converted into <br> tags.
+                    msg = msg.replace(/\n/g, "<br>");
+                    chatlog.append('<li><span style="color:red;">User:</span> ' + chat_message.val() + '</li>');
+                    chatlog.append('<li><span style="color:blue;">Chatbot:</span> ' + msg + '</li>');
+                    chat_message.val("");
+                }
+            });
+            // TODO: disable sending of more messages until we receive a response.
+        }
+    });
+});
+</script>
+
+</head>
+
+<body>
+    <h2>Chat Interface</h2>
+    <p><b>Session ID: </b> {{SESSION_ID}}</p>
+    <ul id="chatlog">
+        <li><span style="color:blue;">Chatbot: </span>{{OUTPUT}}</li>
+    </ul>
+    <input type="text" name="chat_message" id="chat_message">
+    <p>Type a message and hit Return.</p>
+</body>
+</html>
