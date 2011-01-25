@@ -1,7 +1,7 @@
 """
 Dialogue manager.
 """
-from data_structures import ContentPlan
+from data_structures import ContentPlanMessage
 
 class DialogueManager(object):
     """
@@ -23,12 +23,12 @@ class DialogueManager(object):
         user.
         """
         if conversation_state.current_state == 'wait_for_user_name':
-            conversation_state.user_name = parsed_input['user_name']
+            conversation_state.user_name = parsed_input.frame['user_name']
             conversation_state.current_state = 'echo_user_input'
-            return ContentPlan("greet_user_by_name")
+            return ContentPlanMessage("greet_user_by_name")
         else:
             if not conversation_state.user_name:
                 conversation_state.current_state = 'wait_for_user_name'
-                return ContentPlan("ask_for_name")
+                return ContentPlanMessage("ask_for_name")
             else:
-                return ContentPlan("echo_user_input")
+                return ContentPlanMessage("echo_user_input")
