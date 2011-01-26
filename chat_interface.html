@@ -5,43 +5,75 @@
 Chat interface
 </title>
 
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
 
 <script type="text/javascript">
 $(document).ready(function() {
     var chatlog = $('#chatlog');
     var chat_message = $('#chat_message');
+    var submit_button = $('#submit_button');
     var session_id = '{{SESSION_ID}}';
-    chat_message.keypress(function(e) {
-        if(e.keyCode == 13) {
+    function submit_message() {
+        if ($.trim(chat_message.val())) {
+            // Disable text input and submit button
+            chat_message.attr("disabled", true).blur();
+            submit_button.attr("disabled", true);
+            chatlog.append('<li><span class="user_message">' +
+                'User:</span> ' + chat_message.val() + '</li>');
             $.ajax({
                 type: "POST",
                 url: '/',
-                data: ({session_id : session_id, chat_message : chat_message.val()}),
+                data: ({session_id : session_id,
+                        chat_message : chat_message.val()}),
                 dataType: 'text',
                 success: function(msg) {
-                    // The server returns text, not HTML, so newlines need to be converted into <br> tags.
+                    // The server returns text, not HTML, so newlines need to
+                    // be converted into <br> tags.
                     msg = msg.replace(/\n/g, "<br>");
-                    chatlog.append('<li><span style="color:red;">User:</span> ' + chat_message.val() + '</li>');
-                    chatlog.append('<li><span style="color:blue;">Chatbot:</span> ' + msg + '</li>');
+                    chatlog.append('<li><span class="bot_message">' +
+                        'Chatbot:</span> ' + msg + '</li>');
+                    // Enable text input and submit button
+                    chat_message.removeAttr("disabled").focus();
                     chat_message.val("");
+                    submit_button.removeAttr("disabled");
+                },
+                error: function(XMLHttpRequest, textStatus, errorThrown) {
+                    chatlog.append('<li class="debug_message"> Error:' +
+                        textStatus + '</li>');
                 }
             });
-            // TODO: disable sending of more messages until we receive a response.
+            // TODO: handle failure.
+            // TODO: add timeout and handle timeout events.
+        }
+    }
+    submit_button.click(function(e) {
+        submit_message();
+    });
+    chat_message.keypress(function(e) {
+        // Submit message when the return key is pressed.
+        if (e.keyCode == 13) {
+            submit_message();
         }
     });
 });
 </script>
 
+<style type="text/css">
+    .bot_message { color: red; }
+    .user_message { color: blue; }
+    .debug_message { color: gray; }
+    #chatlog { list-style-type: none; padding: 0; margin-left: 0;}
+</style>
 </head>
 
 <body>
     <h2>Chat Interface</h2>
     <p><b>Session ID: </b> {{SESSION_ID}}</p>
     <ul id="chatlog">
-        <li><span style="color:blue;">Chatbot: </span>{{OUTPUT}}</li>
+        <li><span class="bot_message">Chatbot: </span>{{OUTPUT}}</li>
     </ul>
     <input type="text" name="chat_message" id="chat_message">
-    <p>Type a message and hit Return.</p>
+    <input type="submit"  name="submit_button" id="submit_button" value="submit">
+    <p>Type a message and hit Submit (or the return key).</p>
 </body>
 </html>
