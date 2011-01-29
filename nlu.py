@@ -9,11 +9,11 @@ class NaturalLanguageUnderstander(object):
     conversation state is stored in this object.
     """
 
-    def __init__(self):
+    def __init__(self, logger):
         """
         Create a new NaturalLanguageUnderstander.
         """
-        pass
+        self.log = logger
 
     def parse_input(self, user_input, conversation_state):
         """

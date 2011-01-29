@@ -1,10 +1,25 @@
 """
 Chatbot application object.
 """
+import logging
 from nlg import NaturalLanguageGenerator
 from nlu import NaturalLanguageUnderstander
 from dm import DialogueManager
 from data_structures import ConversationState
+
+# Monkey-patch the Python 2.7 logger.getChild() method into the logger class,
+# to maintain backwards-compatibility with Python 2.6.
+#pylint: disable=C0103
+if not hasattr(logging.Logger, "getChild"):
+    def _getChild(self, suffix):
+        """
+        Logger.getChild() method, added in Python 2.7
+        """
+        if self.root is not self:
+            suffix = '.'.join((self.name, suffix))
+        return self.manager.getLogger(suffix)
+    logging.Logger.getChild = _getChild
+
 
 class Chatbot(object):
     """
@@ -14,14 +29,16 @@ class Chatbot(object):
     settings.
     """
 
-    def __init__(self, database):
+    def __init__(self, database, logger):
         """
         Create a new instance of the chatbot application.
         """
         self.database = database
-        self.nlg = NaturalLanguageGenerator()
-        self.nlu = NaturalLanguageUnderstander()
-        self.dm = DialogueManager(database)
+        self.log = logger
+        self.nlg = NaturalLanguageGenerator(logger.getChild('nlg'))
+        self.nlu = NaturalLanguageUnderstander(logger.getChild('nlu'))
+        self.dm = DialogueManager(database, logger.getChild('dm'))
+        self.log.debug("Chatbot instantiated")
 
     def handle_input(self, user_input, conversation_state):
         """
@@ -29,10 +46,13 @@ class Chatbot(object):
         conversation's state, return the output string and modify the
         conversation state.
         """
+        self.log.info('user_input = "%s"' % user_input)
         conversation_state.last_user_input = user_input
         parsed_input = self.nlu.parse_input(user_input, conversation_state)
         content_plan = self.dm.plan_response(parsed_input, conversation_state)
-        bot_response = self.nlg.generate_response(content_plan, conversation_state)
+        bot_response = self.nlg.generate_response(content_plan,
+            conversation_state)
+        self.log.info('bot_output = "%s"' % bot_response)
         return bot_response
 
     def start_new_conversation(self):

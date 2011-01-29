@@ -6,6 +6,7 @@ For a demo, run this program and point your browser to
 http://localhost:8080
 """
 
+import logging
 import uuid
 import urlparse
 import cPickle
@@ -79,7 +80,8 @@ class WebChatServer(object):
 
 def demo():
     database = Database('sqlite:///test_database.sqlite')
-    shared_chatbot = Chatbot(database)
+    logger = logging.getLogger('chatbot')
+    shared_chatbot = Chatbot(database, logger)
     chat_app = WebChatServer(shared_chatbot)
     server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8080), chat_app)
     try:

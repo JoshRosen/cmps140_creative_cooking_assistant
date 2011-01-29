@@ -8,11 +8,11 @@ class NaturalLanguageGenerator(object):
     state is stored in this object.
     """
 
-    def __init__(self):
+    def __init__(self, logger):
         """
         Create a new NaturalLanguageGenerator.
         """
-        pass
+        self.log = logger
 
     def generate_response(self, content_plan, conversation_state):
         """

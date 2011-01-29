@@ -2,13 +2,17 @@
 """
 Command line interface to the chatbot.
 """
+import logging
+
 from optparse import OptionParser
 from chatbot import Chatbot
 from database import Database
 
-parser = OptionParser()
-parser.add_option("--database", dest="database_url",
+PARSER = OptionParser()
+PARSER.add_option("--database", dest="database_url",
                   default='sqlite:///test_database.sqlite')
+PARSER.add_option("--logfile", dest="log_filename",
+                  default='cookingbot.log')
 
 PROMPT = "> "
 
@@ -16,9 +20,15 @@ def main():
     """
     Main loop for the command line interface.
     """
-    (options, args) = parser.parse_args()
+    (options, args) = PARSER.parse_args()
+    # Setup the database
     database = Database(options.database_url)
-    bot = Chatbot(database)
+    # Configure logging
+    logging.basicConfig(filename=options.log_filename, level=logging.DEBUG,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    logger = logging.getLogger('chatbot')
+    # Setup the chatbot
+    bot = Chatbot(database, logger)
     (greeting, conversation_state) = bot.start_new_conversation()
 
     print greeting
