@@ -16,6 +16,7 @@ PARSER.add_option("--logfile", dest="log_filename",
 
 PROMPT = "> "
 
+
 def main():
     """
     Main loop for the command line interface.

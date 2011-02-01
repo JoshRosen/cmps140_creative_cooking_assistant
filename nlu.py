@@ -1,7 +1,8 @@
 """
 Natural language understander.
 """
-from data_structures import ParsedInputMessage
+from data_structures import Message
+
 
 class NaturalLanguageUnderstander(object):
     """
@@ -21,7 +22,9 @@ class NaturalLanguageUnderstander(object):
         conversation's state, return a parsed representation of the
         output string and modify the conversation state.
         """
-        parsed_input = ParsedInputMessage(raw_input_string=user_input)
+        parsed_input = Message(msg_type=None)
+        parsed_input.raw_input_string = user_input
         if conversation_state.current_state == "wait_for_user_name":
             parsed_input.frame['user_name'] = user_input
+            parsed_input.msg_type = 'user_gave_name'
         return parsed_input

@@ -1,7 +1,8 @@
 """
 Dialogue manager.
 """
-from data_structures import ContentPlanMessage
+from data_structures import Message
+
 
 class DialogueManager(object):
     """
@@ -23,13 +24,30 @@ class DialogueManager(object):
         representing the content to be expressed in response to the
         user.
         """
+        # The actual DM implementation could look something like this:
+        # submodules = [] # Every submodule (i.e. greeter, recipe searcher)
+        #                 # implements some common interface.
+        # cannidate_plans = []
+        # for module in submodules:
+        #     cannidate_plans.append(module.plan_response(parsed_input,
+        #                                                conversation_state))
+        # Decide between the cannidate plans
+        # Return a plan
+
+        # This is a simple finite state DM for demoing the chat interface.
+        # This will be replaced as soon as a real DM is written.
         if conversation_state.current_state == 'wait_for_user_name':
             conversation_state.user_name = parsed_input.frame['user_name']
             conversation_state.current_state = 'echo_user_input'
-            return ContentPlanMessage("greet_user_by_name")
+            content_plan = Message("greet_user_by_name")
+            content_plan.frame['user_name'] = conversation_state.user_name
+            return content_plan
         else:
             if not conversation_state.user_name:
                 conversation_state.current_state = 'wait_for_user_name'
-                return ContentPlanMessage("ask_for_name")
+                return Message("ask_for_name")
             else:
-                return ContentPlanMessage("echo_user_input")
+                content_plan = Message("echo_user_input")
+                content_plan.frame['last_user_input'] = \
+                    conversation_state.last_user_input
+                return content_plan

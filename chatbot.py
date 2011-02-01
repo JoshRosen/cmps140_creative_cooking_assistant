@@ -49,6 +49,9 @@ class Chatbot(object):
         self.log.info('user_input = "%s"' % user_input)
         conversation_state.last_user_input = user_input
         parsed_input = self.nlu.parse_input(user_input, conversation_state)
+        # If the input could not be parsed, we could include code here to
+        # use a general-purpose chatbot that can guide the user back to the
+        # topic.
         content_plan = self.dm.plan_response(parsed_input, conversation_state)
         bot_response = self.nlg.generate_response(content_plan,
             conversation_state)
