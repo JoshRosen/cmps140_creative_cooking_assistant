@@ -29,15 +29,15 @@ class Chatbot(object):
     settings.
     """
 
-    def __init__(self, database, logger):
+    def __init__(self, db, logger):
         """
         Create a new instance of the chatbot application.
         """
-        self.database = database
+        self.db = db
         self.log = logger
         self.nlg = NaturalLanguageGenerator(logger.getChild('nlg'))
         self.nlu = NaturalLanguageUnderstander(logger.getChild('nlu'))
-        self.dm = DialogueManager(database, logger.getChild('dm'))
+        self.dm = DialogueManager(db, logger.getChild('dm'))
         self.log.debug("Chatbot instantiated")
 
     def handle_input(self, user_input, conversation_state):

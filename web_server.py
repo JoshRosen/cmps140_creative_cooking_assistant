@@ -85,9 +85,9 @@ def demo():
     WSGI server.
     """
     from cherrypy import wsgiserver
-    database = Database('sqlite:///test_database.sqlite')
+    db = Database('sqlite:///test_database.sqlite')
     logger = logging.getLogger('chatbot')
-    shared_chatbot = Chatbot(database, logger)
+    shared_chatbot = Chatbot(db, logger)
     chat_app = WebChatServer(shared_chatbot)
     server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8080), chat_app)
     try:

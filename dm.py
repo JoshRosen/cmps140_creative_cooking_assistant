@@ -10,11 +10,11 @@ class DialogueManager(object):
     is stored in this object.
     """
 
-    def __init__(self, database, logger):
+    def __init__(self, db, logger):
         """
         Create a new DialogueManager.
         """
-        self.database = database
+        self.db = db
         self.log = logger
 
     def plan_response(self, parsed_input, conversation_state):
