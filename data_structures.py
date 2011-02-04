@@ -46,8 +46,20 @@ class ParsedInputMessage(Message):
         Create a new ParsedInput.
         """
         Message.__init__(self)
-        self.raw_inpupt_string = raw_input_string
+        self.raw_input_string = raw_input_string
 
+    """
+    Fills out the message meta and frame attributes.
+    """
+    def parse(self):
+        pass
+        
+    """
+    Returns a confidence value for the raw_input_string matching the
+    message type.
+    """
+    def confidence(self):
+        return 0.0
 
 class ContentPlanMessage(Message):
     """
@@ -58,3 +70,4 @@ class ContentPlanMessage(Message):
     def __init__(self, description):
         Message.__init__(self)
         self.description = description
+        

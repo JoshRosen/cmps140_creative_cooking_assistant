@@ -23,8 +23,9 @@ class DialogueManager(object):
         representing the content to be expressed in response to the
         user.
         """
+        # Currently this does not take advantage of message types
         if conversation_state.current_state == 'wait_for_user_name':
-            conversation_state.user_name = parsed_input.frame['user_name']
+            conversation_state.user_name = parsed_input.raw_input_string
             conversation_state.current_state = 'echo_user_input'
             return ContentPlanMessage("greet_user_by_name")
         else:
