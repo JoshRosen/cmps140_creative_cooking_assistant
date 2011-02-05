@@ -53,7 +53,7 @@ u'peanut butter'
 u'cup'
 >>> recipes[0].ingredients[0].quantity
 u'1'
->>> recipes[0].ingredients[0].modifiers
+>>> recipes[0].ingredients[2].modifiers
 u'sliced'
 """
 from collections import defaultdict
@@ -127,6 +127,7 @@ class Database(object):
 
         for ingredient_string in recipe_parts['ingredients']:
             ingredient_parts = extract_ingredient_parts(ingredient_string)
+            ingredient_parts = defaultdict(lambda: None, ingredient_parts)
             if not ingredient_parts:
                 continue
             ingredient = self._session.query(Ingredient).filter_by(

@@ -6,6 +6,8 @@ container
 bottle
 pinch
 teaspoon
+tsp
+tbsp
 tablespoon
 slice
 sprig

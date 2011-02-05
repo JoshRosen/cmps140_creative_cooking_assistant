@@ -1,7 +1,6 @@
 """
 Natural language understander.
 """
-from collections import defaultdict
 import inspect
 import re
 from nltk.stem.wordnet import WordNetLemmatizer
@@ -61,7 +60,8 @@ def normalize_ingredient_name(ingredient_name):
     >>> normalize_ingredient_name('bing cherries')
     'bing cherry'
     """
-    return LEMMATIZER.lemmatize(ingredient_name.strip())
+    words = ingredient_name.strip().split()
+    return ' '.join(LEMMATIZER.lemmatize(w) for w in words)
 
 
 def extract_ingredient_parts(ingredient_string):
@@ -70,26 +70,49 @@ def extract_ingredient_parts(ingredient_string):
     a recipe's ingredient list.  Returns a dictionary, or None if nothing could
     be parsed.
 
+    Simple examples:
+
     >>> extract_ingredient_parts('12 cups lettuce')
     {'base_ingredient': 'lettuce', 'unit': 'cups', 'quantity': '12'}
     >>> extract_ingredient_parts("14 large, fresh eggs")
-    {'base_ingredient': 'eggs', 'modifiers': 'large, fresh', 'quantity': '14'}
+    {'base_ingredient': 'egg', 'modifiers': 'large, fresh', 'quantity': '14'}
+
+    More complex quantities:
+
+    >>> extract_ingredient_parts('1 1/2 tbsp olive oil')
+    {'base_ingredient': 'olive oil', 'unit': 'tbsp', 'quantity': '1 1/2'}
+    >>> extract_ingredient_parts('1 (12 ounce) package tofu')
+    {'base_ingredient': 'tofu', 'unit': '(12 ounce) package', 'quantity': '1'}
     """
-    parts = defaultdict(lambda: None)
-    tokens = ingredient_string.strip().split()
-    # The first token is probably a quantity or measurement.
-    parts['quantity'] = tokens.pop(0)
+    parts = {}
+    ingredient_string = ingredient_string.strip()
+    tokens = []
+    # For tokenization, consider anything in parentheses to be a single
+    # token.
+    tokenize_keep_parens = r"\([^)]+\)|[a-zA-Z0-9_,.-]+"
+
+    # Handle units and quantaties, if they are present:
+    # Extract the quantity using a regular expression (to handle '1 1/2')
+    match = re.match(r"^([0-9/ -]+)(.*)$", ingredient_string)
+    if match:
+        parts['quantity'] = match.group(1).strip()
+        tokens = re.findall(tokenize_keep_parens, match.group(2))
+        if not tokens:
+            return None
+        # Extract unit of measurement.  In cases like '1 (12 ounce) package',
+        # '(12 ounce) package' is the unit of measurement.
+        # TODO: Perhaps the unit of measurement should be normalized.
+        unit_tokens = []
+        while tokens and (is_unit_of_measurement(tokens[0]) or \
+            tokens[0].startswith('(')):
+            unit_tokens.append(tokens.pop(0))
+        if unit_tokens:
+            parts['unit'] = ' '.join(unit_tokens)
+    else:
+        tokens = re.findall(tokenize_keep_parens, ingredient_string)
     if not tokens:
         return None
-    # Extract unit of measurement
-    unit_tokens = []
-    while tokens and is_unit_of_measurement(tokens[0]):
-        unit_tokens.append(tokens.pop(0))
-    if unit_tokens:
-        parts['unit'] = ' '.join(unit_tokens)
-    if not tokens:
-        return None
-    # TODO: Perhaps the unit of measurement should be normalized.
+
     # Hopefully, the remaining tokens describe the ingredient.  There may be
     # modifiers, like 'grated cheese'.  To extract the base ingredient, use
     # WordNet.
@@ -100,7 +123,7 @@ def extract_ingredient_parts(ingredient_string):
         parts['modifiers'] = ' '.join(modifier_tokens)
     if not tokens:
         return None
-    # TODO: Lemmatize or otherwise normalize the ingredient name.
+    # TODO: Handle modifiers that appear after the base ingredient
     parts['base_ingredient'] = normalize_ingredient_name(' '.join(tokens))
     return parts
 
