@@ -46,16 +46,18 @@ class Chatbot(object):
         conversation's state, return the output string and modify the
         conversation state.
         """
-        self.log.info('user_input = "%s"' % user_input)
+        self.log.info('%12s = "%s"' % ('user_input', user_input))
         conversation_state.last_user_input = user_input
         parsed_input = self.nlu.parse_input(user_input, conversation_state)
         # If the input could not be parsed, we could include code here to
         # use a general-purpose chatbot that can guide the user back to the
         # topic.
+        self.log.debug('%12s = "%s"' % ('parsed_input', parsed_input))
         content_plan = self.dm.plan_response(parsed_input, conversation_state)
+        self.log.debug('%12s = "%s"' % ('content_plan', content_plan))
         bot_response = self.nlg.generate_response(content_plan,
             conversation_state)
-        self.log.info('bot_output = "%s"' % bot_response)
+        self.log.info('%12s = "%s"' % ('bot_response', bot_response))
         return bot_response
 
     def start_new_conversation(self):

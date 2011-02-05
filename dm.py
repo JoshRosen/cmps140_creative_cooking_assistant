@@ -1,7 +1,7 @@
 """
 Dialogue manager.
 """
-from data_structures import Message
+from data_structures import ContentPlanMessage
 
 
 class DialogueManager(object):
@@ -36,18 +36,15 @@ class DialogueManager(object):
 
         # This is a simple finite state DM for demoing the chat interface.
         # This will be replaced as soon as a real DM is written.
+        # Currently this does not take advantage of message types
+        # Currently this does not take advantage of message types
         if conversation_state.current_state == 'wait_for_user_name':
-            conversation_state.user_name = parsed_input.frame['user_name']
+            conversation_state.user_name = parsed_input.raw_input_string
             conversation_state.current_state = 'echo_user_input'
-            content_plan = Message("greet_user_by_name")
-            content_plan.frame['user_name'] = conversation_state.user_name
-            return content_plan
+            return ContentPlanMessage("greet_user_by_name")
         else:
             if not conversation_state.user_name:
                 conversation_state.current_state = 'wait_for_user_name'
-                return Message("ask_for_name")
+                return ContentPlanMessage("ask_for_name")
             else:
-                content_plan = Message("echo_user_input")
-                content_plan.frame['last_user_input'] = \
-                    conversation_state.last_user_input
-                return content_plan
+                return ContentPlanMessage("echo_user_input")
