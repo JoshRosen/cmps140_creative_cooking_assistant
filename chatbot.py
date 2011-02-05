@@ -20,6 +20,7 @@ if not hasattr(logging.Logger, "getChild"):
         return self.manager.getLogger(suffix)
     logging.Logger.getChild = _getChild
 
+
 class Chatbot(object):
     """
     Object that represents an instance of the chatbot application.

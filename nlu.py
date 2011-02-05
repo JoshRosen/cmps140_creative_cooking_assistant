@@ -9,6 +9,7 @@ class NaturalLanguageUnderstander(object):
     Object that performs natural language understanding.  No
     conversation state is stored in this object.
     
+    
     >>> logger = None
     >>> conversation_state = ConversationState()
     >>> nlu = NaturalLanguageUnderstander(logger)
@@ -99,8 +100,3 @@ class NaturalLanguageUnderstanderError(Exception):
         Return error string
         """
         return repr(self.parameter)
-        
-
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
