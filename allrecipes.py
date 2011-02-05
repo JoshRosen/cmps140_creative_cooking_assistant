@@ -5,8 +5,6 @@ AllRecipes.com provides an XML sitemap file containing links to every recipe in
 the site at http://allrecipes.com/recipedetail.xml.
 
 Run this module to add recipes to a database.
-
-Note: the program will fail when adding duplicate recipes.
 """
 
 import lxml.html
@@ -19,7 +17,7 @@ import os
 import sys
 
 from nlu import time_to_minutes
-from database import Database
+from database import Database, DuplicateRecipeException
 
 SITEMAP_XML_NAMESPACE = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
 
@@ -129,9 +127,12 @@ def main():
             exit(-1)
         recipe_file = open(filename)
         recipe_parts = extract_recipe_parts(recipe_file)
-        db.add_from_recipe_parts(recipe_parts)
-        logging.info("Imported recipe %s from %s" %
-            (recipe_parts['title'], filename))
+        try:
+            db.add_from_recipe_parts(recipe_parts)
+            logging.info("Imported recipe %s from %s" %
+                (recipe_parts['title'], filename))
+        except DuplicateRecipeException:
+            logging.warn("Recipe in %s is a duplicate; skipping." % filename)
         recipe_file.close()
 
 
