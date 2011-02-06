@@ -2,6 +2,7 @@
 Natural language understander.
 """
 import inspect
+from operator import itemgetter
 import re
 from data_structures import ParsedInputMessage, Message, ConversationState
 
@@ -37,7 +38,8 @@ class NaturalLanguageUnderstander(object):
     
     >>> logger = None
     >>> conversation_state = ConversationState()
-    >>> nlu = NaturalLanguageUnderstander(logger)
+    >>> confidenceThreshold = .5
+    >>> nlu = NaturalLanguageUnderstander(confidenceThreshold, logger)
     
     >>> class EchoMessage(ParsedInputMessage):
     ...     frame = {'echo':None}
@@ -45,20 +47,36 @@ class NaturalLanguageUnderstander(object):
     ...     def parse(self):
     ...         raw_string = self.raw_input_string
     ...         self.frame['echo'] = 'echo: %s' % raw_string
+    ...     
+    ...     @staticmethod
+    ...     def confidence(raw_input_string):
+    ...         return 0.0
+    
     >>> nlu.register_message(EchoMessage, conversation_state)
     >>> nlu.expect_message(EchoMessage, conversation_state)
     >>> message1 = nlu.parse_input('Rain falls from the sky. Clouds rise '
     ...                               'from the ground.', conversation_state)
-    >>> message1.frame['echo']
+    >>> message1[0].frame['echo']
     'echo: Rain falls from the sky. Clouds rise from the ground.'
     >>> message2 = nlu.parse_input('Natural Language gives my hives.',
     ...                             conversation_state)
-    >>> message2.frame['echo']
+    >>> message2[0].frame['echo']
     'echo: Natural Language gives my hives.'
     >>> nlu.acknowledge_message(conversation_state)
+    >>> message3 = nlu.parse_input('I like turtles...',
+    ...                             conversation_state)
+    >>> message3
+    []
+    >>> nlu.set_confidence_threshold(0.0)
+    >>> message3 = nlu.parse_input('I like turtles...',
+    ...                             conversation_state)
+    >>> len(message3)
+    1
+    >>> type(message3[0])
+    <class 'nlu.EchoMessage'>
     """
 
-    def __init__(self, logger):
+    def __init__(self, confidenceThreshold, logger):
         """
         Create a new NaturalLanguageUnderstander.
         """
@@ -68,6 +86,8 @@ class NaturalLanguageUnderstander(object):
         self.messageStack = []
         # message classes to check input against
         self.messageTypes = []
+        # set confidence threshold
+        self.confidenceThreshold = confidenceThreshold
         
 
     def parse_input(self, user_input, conversation_state ):
@@ -76,15 +96,28 @@ class NaturalLanguageUnderstander(object):
         conversation's state, return a ParsedInputMessage and modify
         the conversation state.
         """
+        validMessages = []
         # If expecting a message, generate it
         if len(self.messageStack)>0 and self.messageStack[-1] != None:
             message = self.messageStack[-1](user_input)
             message.parse()
+            validMessages.append(message)
         else:
             # Figure out what type of message the user_input is
-            message = ParsedInputMessage(user_input)
+            # TODO: make messageType.confidence a class method
+            messageTuples = [(MessageType,
+                        MessageType.confidence(user_input))
+                        for MessageType in self.messageTypes]
+            messages = sorted(messageTuples, key=itemgetter(1))
             
-        return message
+            # Return the most confident message which is above threshold
+            for MessageType, confidence in messages:
+                if confidence >= self.confidenceThreshold:
+                    message = MessageType(user_input)
+                    message.parse()
+                    validMessages.append(message)
+            
+        return validMessages
         
     def acknowledge_message(self, conversation_state):
         """
@@ -100,15 +133,21 @@ class NaturalLanguageUnderstander(object):
         Pushes this message onto the messageStack.
         """
         self.messageStack.append(messageClass)
+        
+    def set_confidence_threshold(self, confidenceThreshold):
+        """
+        Sets the minimum confidence of messages acknowledge_message will return.
+        """
+        self.confidenceThreshold = confidenceThreshold
             
-    def register_message(self, messageClass, conversation_state):
+    def register_message(self, MessageClass, conversation_state):
         """
         Adds a message class to the types of messages to check against
         """
-        assert inspect.isclass(messageClass)
-        assert issubclass(messageClass, Message)
+        assert inspect.isclass(MessageClass)
+        assert issubclass(MessageClass, Message)
 
-        self.messageTypes.append(messageClass)
+        self.messageTypes.append(MessageClass)
         
 class NaturalLanguageUnderstanderError(Exception):
     """
