@@ -11,6 +11,10 @@ class ConversationState(object):
 
     The ConversationState can be persisted by pickling it using the
     pickle or cPickle modules.
+
+    This makes it easy to put the system into specific states for
+    testing, without having to write complex test setup and teardown
+    methods.
     """
 
     def __init__(self):
@@ -31,7 +35,13 @@ class Message(object):
         """
         Create a new Message.
         """
+        # Mike: Not sure if this is necessary
+        # The variable name 'type' conflicts with the Python's built-in type()
+        # function.
+        # self.msg_type = msg_type
+        # Frame implements frame-and-slot semantics.
         self.frame = {}
+        # Additional metadata attributes could be added.
 
 
 class ParsedInputMessage(Message):
@@ -74,7 +84,7 @@ class ContentPlanMessage(Message):
     for use by the NLG.
     """
 
-    def __init__(self, description):
+    def __init__(self, msg_type):
         Message.__init__(self)
-        self.description = description
+        self.msg_type = msg_type
         

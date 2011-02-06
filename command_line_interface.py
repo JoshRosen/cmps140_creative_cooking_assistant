@@ -16,19 +16,20 @@ PARSER.add_option("--logfile", dest="log_filename",
 
 PROMPT = "> "
 
+
 def main():
     """
     Main loop for the command line interface.
     """
     (options, args) = PARSER.parse_args()
     # Setup the database
-    database = Database(options.database_url)
+    db = Database(options.database_url)
     # Configure logging
     logging.basicConfig(filename=options.log_filename, level=logging.DEBUG,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     logger = logging.getLogger('chatbot')
     # Setup the chatbot
-    bot = Chatbot(database, logger)
+    bot = Chatbot(db, logger)
     (greeting, conversation_state) = bot.start_new_conversation()
 
     print greeting

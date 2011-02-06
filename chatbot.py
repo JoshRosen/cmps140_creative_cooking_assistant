@@ -30,15 +30,15 @@ class Chatbot(object):
     settings.
     """
 
-    def __init__(self, database, logger):
+    def __init__(self, db, logger):
         """
         Create a new instance of the chatbot application.
         """
-        self.database = database
+        self.db = db
         self.log = logger
         self.nlg = NaturalLanguageGenerator(logger.getChild('nlg'))
         self.nlu = NaturalLanguageUnderstander(0.0, logger.getChild('nlu'))
-        self.dm = DialogueManager(database, logger.getChild('dm'))
+        self.dm = DialogueManager(db, logger.getChild('dm'))
         self.log.debug("Chatbot instantiated")
 
     def handle_input(self, user_input, conversation_state):
@@ -50,6 +50,9 @@ class Chatbot(object):
         self.log.info('%12s = "%s"' % ('user_input', user_input))
         conversation_state.last_user_input = user_input
         parsed_input = self.nlu.parse_input(user_input, conversation_state)
+        # If the input could not be parsed, we could include code here to
+        # use a general-purpose chatbot that can guide the user back to the
+        # topic.
         self.log.debug('%12s = "%s"' % ('parsed_input', parsed_input))
         content_plan = self.dm.plan_response(parsed_input[0], conversation_state)
         self.log.debug('%12s = "%s"' % ('content_plan', content_plan))

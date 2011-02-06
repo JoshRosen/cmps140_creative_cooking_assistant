@@ -1,9 +1,34 @@
 """
 Natural language understander.
 """
-from data_structures import ParsedInputMessage, Message, ConversationState
 import inspect
 from operator import itemgetter
+import re
+from data_structures import ParsedInputMessage, Message, ConversationState
+
+
+def time_to_minutes(time):
+    """
+    >>> time_to_minutes('3 Hrs 20 Min')
+    200
+    >>> time_to_minutes('1 Hour 20 Mins')
+    80
+    >>> time_to_minutes('10 Minutes')
+    10
+    """
+    regex = re.compile(r"""
+        (?:(\d+)\ (?:Hr|Hour)s?)?
+        \ ?
+        (?:(\d+)\ (?:Minute|Min)s?)?
+    """, re.VERBOSE)
+    match = regex.match(time)
+    hours, minutes = match.groups()
+    if hours == None:
+        hours = 0
+    if minutes == None:
+        minutes = 0
+    return int(minutes) + (int(hours) * 60)
+
 
 class NaturalLanguageUnderstander(object):
     """

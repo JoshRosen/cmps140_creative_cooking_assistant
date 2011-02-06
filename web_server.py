@@ -13,7 +13,6 @@ import cPickle
 
 from chatbot import Chatbot
 from database import Database
-from cherrypy import wsgiserver
 
 
 class WebChatServer(object):
@@ -52,7 +51,8 @@ class WebChatServer(object):
         if method == 'GET':
             session_id = str(uuid.uuid4())
             # Start a new conversation
-            (greeting, conversation_state) = self.chatbot.start_new_conversation()
+            (greeting, conversation_state) = \
+                self.chatbot.start_new_conversation()
             # Save the conversation state in the key-value store
             self._save_conversation_state(conversation_state, session_id)
             # Return HTML of chat interface
@@ -70,7 +70,8 @@ class WebChatServer(object):
             # Load the saved state
             conversation_state = self._load_conversation_state(session_id)
             # Get the bot's output
-            output = self.chatbot.handle_input(chat_message, conversation_state)
+            output = self.chatbot.handle_input(chat_message,
+                                               conversation_state)
             # Store the modified conversation state
             self._save_conversation_state(conversation_state, session_id)
             # Return the output as text
@@ -79,11 +80,16 @@ class WebChatServer(object):
 
 
 def demo():
-    database = Database('sqlite:///test_database.sqlite')
+    """
+    Demo of how to use the WebChatServer WSGI application, using CherryPy's
+    WSGI server.
+    """
+    from cherrypy import wsgiserver
+    db = Database('sqlite:///test_database.sqlite')
     logger = logging.getLogger('chatbot')
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.DEBUG)
-    shared_chatbot = Chatbot(database, logger)
+    shared_chatbot = Chatbot(db, logger)
     chat_app = WebChatServer(shared_chatbot)
     server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8080), chat_app)
     try:
