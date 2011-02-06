@@ -99,8 +99,8 @@ class NaturalLanguageUnderstander(object):
         validMessages = []
         # If expecting a message, generate it
         if len(self.messageStack)>0 and self.messageStack[-1] != None:
-            message = self.messageStack[-1](user_input)
-            message.parse()
+            message = self.messageStack[-1]
+            message.parse(user_input)
             validMessages.append(message)
         else:
             # Figure out what type of message the user_input is
@@ -114,7 +114,6 @@ class NaturalLanguageUnderstander(object):
             for MessageType, confidence in messages:
                 if confidence >= self.confidenceThreshold:
                     message = MessageType(user_input)
-                    message.parse()
                     validMessages.append(message)
             
         return validMessages
