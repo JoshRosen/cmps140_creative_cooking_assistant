@@ -57,7 +57,7 @@ class Chatbot(object):
         content_plan = self.dm.plan_response(parsed_input[0], conversation_state)
         self.log.debug('%12s = "%s"' % ('content_plan', content_plan))
         self.log.debug('%12s = %s' % ('parsed_input', parsed_input))
-        content_plan = self.dm.plan_response(parsed_input, conversation_state)
+        content_plan = self.dm.plan_response(parsed_input[0], conversation_state)
         self.log.debug('%12s = %s' % ('content_plan', content_plan))
         bot_response = self.nlg.generate_response(content_plan,
             conversation_state)
