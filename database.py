@@ -127,9 +127,9 @@ class Database(object):
 
         for ingredient_string in recipe_parts['ingredients']:
             ingredient_parts = extract_ingredient_parts(ingredient_string)
-            ingredient_parts = defaultdict(lambda: None, ingredient_parts)
             if not ingredient_parts:
                 continue
+            ingredient_parts = defaultdict(lambda: None, ingredient_parts)
             ingredient = self._session.query(Ingredient).filter_by(
                 name=ingredient_parts['base_ingredient']).first()
             if not ingredient:
