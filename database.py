@@ -55,6 +55,14 @@ u'cup'
 u'1'
 >>> recipes[0].ingredients[2].modifiers
 u'sliced'
+
+The RecipeIngredientAssociation objects can be printed:
+
+>>> for ingredient in recipes[0].ingredients:
+...     print ingredient
+1 cup peanut butter
+1 tablespoon jelly
+2 slices sliced bread
 """
 from collections import defaultdict
 
@@ -196,6 +204,11 @@ class RecipeIngredientAssociation(Base):
     def __repr__(self):
         return "<RecipeIngredientAssociation(%s, %s)>" % \
             (self.recipe.title, self.ingredient.name)
+
+    def __str__(self):
+        parts = [self.quantity, self.unit, self.modifiers,
+            self.ingredient.name]
+        return ' '.join(x for x in parts if x)
 
 
 class Recipe(Base):
