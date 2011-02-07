@@ -33,6 +33,12 @@ class Chatbot(object):
     def __init__(self, db, logger):
         """
         Create a new instance of the chatbot application.
+
+        >>> from database import Database
+        >>> db = Database('sqlite:///:memory:')
+        >>> bot = Chatbot(db, logging.getLogger())
+        >>> conversation_state = bot.start_new_conversation()[1]
+        >>> response = bot.handle_input("Hi!", conversation_state)
         """
         self.db = db
         self.log = logger
