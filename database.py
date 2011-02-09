@@ -63,11 +63,21 @@ The RecipeIngredientAssociation objects can be printed:
 1 cup peanut butter
 1 tablespoon jelly
 2 slices sliced bread
+
+You can construct some very complicated queries:
+
+>>> recipes = db.get_recipes(include_ingredients=['bacon', 'chocolate'],
+...     exclude_ingredients=['blueberries'], prep_time=5, cook_time=(None, 20),
+...     total_time=(10, 30), num_steps=(3, None))
+
+For the full details on the search capabilities, see the documentation for the
+get_recipes() method.
 """
 from collections import defaultdict
 
 from sqlalchemy import create_engine, Table, Column, Integer, \
     String, ForeignKey
+from sqlalchemy.sql.expression import between
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker, join
 
@@ -153,9 +163,26 @@ class Database(object):
         self._session.add(recipe)
         self._session.commit()
 
-    def get_recipes(self, include_ingredients=(), exclude_ingredients=()):
+    def get_recipes(self, include_ingredients=(), exclude_ingredients=(),
+                    prep_time=None, cook_time=None, total_time=None,
+                    num_steps=None):
         """
         Get recipes matching the given criteria.
+
+        Numeric attributes, like total_time, can be specified as single values
+        (to retreive exact matches) or (min, max) tuples that define ranges
+        which include their endpoints.  To specify just a maximum or minimum,
+        set the other value to None.
+
+        For example, to find recipes with a total time of 1/2 to 1 hours:
+        >>> db = Database("sqlite:///:memory:")
+        >>> recipes = db.get_recipes(total_time=(30, 60))
+
+        Or, to find recipes that take up to 15 minutes to prepare:
+        >>> recipes = db.get_recipes(prep_time=(None, 15))
+
+        To find recipes that have exactly 5 steps:
+        >>> recipes = db.get_recipes(num_steps=5)
         """
         # Normalize ingredient names, so that they match the names stored in
         # the database.
@@ -174,6 +201,17 @@ class Database(object):
                 query = query.filter(Ingredient.name == ingredient_name)
             for ingredient_name in exclude_ingredients:
                 query = query.filter(Ingredient.name != ingredient_name)
+        # Handle ranges searches over simple numeric attributes, like
+        # total_time or num_steps
+        if total_time != None:
+            query = query.filter(_range_predicate(Recipe.total_time,
+                total_time))
+        if cook_time != None:
+            query = query.filter(_range_predicate(Recipe.cook_time, cook_time))
+        if prep_time != None:
+            query = query.filter(_range_predicate(Recipe.prep_time, prep_time))
+        if num_steps != None:
+            query = query.filter(_range_predicate(Recipe.num_steps, num_steps))
         return query.all()
 
 
@@ -285,3 +323,27 @@ class DuplicateRecipeException(DatabaseException):
     Thrown when trying to insert a duplicate recipe into the database.
     """
     pass
+
+
+def _range_predicate(attribute, val_range):
+    """
+    Accepts an attribute and a tuple (min, max), and returns a predicate to
+    find items whose attribute values fall within that range.  The range
+    includes the endpoints.
+
+    This is a private helper function used to avoid cluttering get_recipes().
+    """
+    if not hasattr(val_range, '__iter__'):
+        return attribute == val_range
+    else:
+        if len(val_range) != 2:
+            raise ValueError(
+                "Invalid range %s; valid ranges are (min, max) tuples."
+                % str(val_range))
+        (min_val, max_val) = val_range
+        if min_val != None and max_val != None:
+            return between(attribute, min_val, max_val)
+        elif min_val != None:
+            return attribute >= min_val
+        else:
+            return attribute <= max_val
