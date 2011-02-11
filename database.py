@@ -38,7 +38,8 @@ You can search for recipes based on the ingredients that they contain:
 >>> len(recipes)
 0
 >>> recipes = db.get_recipes(include_ingredients=['peanut butter'],
-...                          exclude_ingredients=['chicken'])
+...                          exclude_ingredients=['chicken'],
+...                          num_ingredients=3)
 >>> len(recipes)
 1
 
@@ -73,7 +74,7 @@ You can construct some very complicated queries:
 
 >>> recipes = db.get_recipes(include_ingredients=['bacon', 'chocolate'],
 ...     exclude_ingredients=['blueberries'], prep_time=5, cook_time=(None, 20),
-...     total_time=(10, 30), num_steps=(3, None))
+...     total_time=(10, 30), num_steps=(3, None), num_ingredients=6)
 
 For the full details on the search capabilities, see the documentation for the
 get_recipes() method.
@@ -167,12 +168,22 @@ class Database(object):
             assoc = RecipeIngredientAssociation(ingredient, unit, quantity,
                                                 modifiers)
             recipe.ingredients.append(assoc)
+
+        # The ingredient count is stored as a part of the reicpe to avoid
+        # expensive subqueries when filtering recipes based on the number of
+        # ingredients that they contain.  It's unlikely that recipes would be
+        # modified after they're imported, but there should probably be
+        # a trigger to ensure that this count remains up to date.
+        # The count is set after processing the ingredient string to prevent
+        # headings like "CRUST: " from contributing to the ingredient count.
+        recipe.num_ingredients = len(recipe.ingredients)
+
         self._session.add(recipe)
         self._session.commit()
 
     def get_recipes(self, include_ingredients=(), exclude_ingredients=(),
                     prep_time=None, cook_time=None, total_time=None,
-                    num_steps=None):
+                    num_steps=None, num_ingredients=None):
         """
         Get recipes matching the given criteria.
 
@@ -219,6 +230,9 @@ class Database(object):
             query = query.filter(_range_predicate(Recipe.prep_time, prep_time))
         if num_steps != None:
             query = query.filter(_range_predicate(Recipe.num_steps, num_steps))
+        if num_ingredients != None:
+            query = query.filter(_range_predicate(Recipe.num_ingredients,
+                num_ingredients))
         return query.all()
 
 
@@ -271,6 +285,7 @@ class Recipe(Base):
     categories = relationship('Category', secondary=recipe_categories,
                                backref='recipes')
     num_steps = Column(Integer)
+    num_ingredients = Column(Integer)
     ingredients_text = Column(String)
     steps_text = Column(String)
     servings = Column(String)
