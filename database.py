@@ -64,6 +64,11 @@ The RecipeIngredientAssociation objects can be printed:
 1 tablespoon jelly
 2 slices sliced bread
 
+>>> print recipes[0].steps_text
+Remove bread from package
+Spread peanut butter and jelly onto each slice of bread.
+Combine slices of bread, optionally remove crust, and eat.
+
 You can construct some very complicated queries:
 
 >>> recipes = db.get_recipes(include_ingredients=['bacon', 'chocolate'],
@@ -142,6 +147,8 @@ class Database(object):
         recipe.prep_time = recipe_parts['prep_time']
         recipe.cook_time = recipe_parts['cook_time']
         recipe.total_time = recipe_parts['total_time']
+        recipe.ingredients_text = "\n".join(recipe_parts['ingredients'])
+        recipe.steps_text = "\n".join(recipe_parts['steps'])
 
         for ingredient_string in recipe_parts['ingredients']:
             ingredient_parts = extract_ingredient_parts(ingredient_string)
@@ -264,7 +271,7 @@ class Recipe(Base):
     categories = relationship('Category', secondary=recipe_categories,
                                backref='recipes')
     num_steps = Column(Integer)
-    ingredient_text = Column(String)
+    ingredients_text = Column(String)
     steps_text = Column(String)
     servings = Column(String)
     prep_time = Column(Integer)

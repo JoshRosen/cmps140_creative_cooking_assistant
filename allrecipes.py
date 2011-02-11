@@ -78,9 +78,6 @@ def extract_recipe_parts(recipe_detail_page):
     recipe['steps'] = steps
     recipe['num_steps'] = len(steps)
 
-    recipe['ingredients_text'] = "\n".join(recipe['ingredients'])
-    recipe['steps_text'] = "\n".join(steps)
-
     prep_time = page.find_class("prepTime")
     if len(prep_time) == 1:
         recipe['prep_time'] = time_to_minutes(prep_time[0].getnext().text)
