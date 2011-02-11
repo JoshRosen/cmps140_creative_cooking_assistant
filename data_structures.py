@@ -64,7 +64,7 @@ class ParsedInputMessage(Message):
         """
         Message.__init__(self)
         self.raw_input_strings = [raw_input_string]
-        self.meta['confidence'] = self.confidence(raw_input_string)
+        self.meta['confidence'] = ParsedInputMessage.confidence(raw_input_string)
         self.frame = dict(zip(self.frame_keys, repeat(None)))
         self.parse(raw_input_string)
 
