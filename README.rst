@@ -20,6 +20,13 @@ Undergraduate Students
 - Josh Rosen
 - Mike Wilson
 
+============
+Requirements
+============
+Our project requires a few python libraries, which are listed in
+``requirements.txt``.  To install the required libraries using `pip
+<http://pip.openplans.org/>`_, run ``pip install -r requirements.txt``.
+
 ================
 Coding standards
 ================
