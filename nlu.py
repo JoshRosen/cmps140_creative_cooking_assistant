@@ -196,20 +196,19 @@ class NaturalLanguageUnderstander(object):
         the conversation state.
         """
         validMessages = []
-        # If expecting a message, generate it
+        # If expecting a message, generate it not matter what
         if len(self.messageStack)>0 and self.messageStack[-1] != None:
             message = self.messageStack[-1]
             message.parse(user_input)
             validMessages.append(message)
         else:
             # Figure out what type of message the user_input is
-            # TODO: make messageType.confidence a class method
             messageTuples = [(MessageType,
                         MessageType.confidence(user_input))
                         for MessageType in self.messageTypes]
             messages = sorted(messageTuples, key=itemgetter(1))
             
-            # Return the most confident message which is above threshold
+            # Return sorted confident messages which are above threshold
             for MessageType, confidence in messages:
                 if confidence >= self.confidenceThreshold:
                     message = MessageType(user_input)
