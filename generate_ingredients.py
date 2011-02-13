@@ -1,27 +1,33 @@
 """
 Generates the ingredients.txt file by dumping the ingredients from the db.
 """
-
 from database import Database
-import re
 
-ingredients_file = open('wordlists/ingredients.txt', 'w')
 
-db = Database("sqlite:///database.sqlite")
-db.create_database_schema()
+def _sanitize_name(name):
+    """
+    Remove words after commas and in parentheses.
+    >>> _sanitize_name("apples  (organic)  ")
+    'apples'
+    >>> _sanitize_name("spinach, fresh or frozen")
+    'spinach'
+    """
+    comma_pos = name.find(',')
+    paren_pos = name.find('(')
+    if comma_pos != -1:
+        name = name[:comma_pos]
+    if paren_pos != -1:
+        name = name[:paren_pos]
+    return name.strip()
 
-recipes = db.get_recipes()
 
-ingredients = set()
-for recipe in recipes[:100]:
-    for ingredient in recipe.ingredients:
-        ingredients.add(ingredient.ingredient)
+def main():
+    db = Database("sqlite:///database.sqlite")
+    names = set([_sanitize_name(i.name) for i in db.get_ingredients()])
+    ingredients_file = open('wordlists/ingredients.txt', 'w')
+    for name in names:
+        ingredients_file.write('%s\n' % name)
 
-for ingredient in ingredients:
-    # santitize: remove words after commas and in elipses
-    ingredient_name = ingredient.name
-    comma_pos = ingredient.name.find(',')
-    elipse_pos = ingredient.name.find('(')
-    if comma_pos != -1: ingredient_name = ingredient_name[:comma_pos]
-    if elipse_pos != -1: ingredient_name = ingredient_name[:elipse_pos]
-    ingredients_file.write('%s\n' % ingredient_name)
+
+if __name__ == "__main__":
+    main()

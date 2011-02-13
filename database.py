@@ -156,7 +156,7 @@ class Database(object):
             if not ingredient_parts:
                 continue
             ingredient_parts = defaultdict(lambda: None, ingredient_parts)
-            ingredient = self._session.query(Ingredient).filter_by(
+            ingredient = self.get_ingredients(
                 name=ingredient_parts['base_ingredient']).first()
             if not ingredient:
                 ingredient = Ingredient(ingredient_parts['base_ingredient'])
@@ -234,6 +234,16 @@ class Database(object):
             query = query.filter(_range_predicate(Recipe.num_ingredients,
                 num_ingredients))
         return query.all()
+
+    def get_ingredients(self, name=None):
+        """
+        Get ingredients matching the given criteria.
+        """
+        query =  self._session.query(Ingredient)
+        if name != None:
+            name = normalize_ingredient_name(name)
+            query = query.filter_by(name=name)
+        return query
 
 
 class RecipeIngredientAssociation(Base):
