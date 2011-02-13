@@ -1,12 +1,21 @@
 from data_structures import ParsedInputMessage
 import random
+import nltk
+from nltk.corpus import wordnet
+import utils
+import wordlists
 
 class SearchMessage(ParsedInputMessage):
     # attributes in the frame
-    frame_keys = ['ingredientients', 'cost', 'callories', 'time_total', 'time_prep',
-            'time_cook', 'culture', 'actions', 'instruments', 'food_type',
-            'author', 'meal_time', 'course', 'taste', 'food_group']
-    keywords = ["search", "find", "bring", "want", "need"]
+    #frame_keys = ['ingredientients', 'cost', 'callories', 'time_total', 'time_prep',
+    #        'time_cook', 'culture', 'actions', 'instruments', 'food_type',
+    #        'author', 'meal_time', 'course', 'taste', 'food_group']
+    frame_keys = ['meal', 'dish', 'ingredient']
+    keywords = ['desire.v.01', 'like.v.05', 'need.n.02', 'looking.n.02',
+                'search.v.02', 'want.v.03', 'want.v.04']
+    _meal_types = wordlists.meal_types
+    _ingredients = wordlists.ingredients
+    
     
     def parse(self, raw_input_string):
         """
@@ -14,46 +23,47 @@ class SearchMessage(ParsedInputMessage):
         """
         super(SearchMessage, self).parse(raw_input_string)
         
-        choice = random.randrange(0, 3)
-        print choice
-        if choice is 0:
-            self.frame["ingredient"] = ["butter", "bread", "jelly"]
-            self.frame["cost"] = 45.02
-            self.frame["calories"] = 200
-            self.frame["time_total"] = 600
-            self.frame["time_prep"] = 120
-            self.frame["time_cook"] = 480
-            self.frame["culture"] = "Mexican"
-            self.frame["actions"] = ["slice", "spread"]
-            self.frame["instruments"] = ["knife", "fork", "spoon"]
-            self.frame["food_type"] = "snack"
-            self.frame["author"] = ["Sunset Magazine"]
-            self.frame["food_group"] = ["grains", "sweets"]
-        elif choice is 1:
-            self.frame["ingredient"] = ["soda", "chips", "margarine"]
-            self.frame["cost"] = 10.11
-            self.frame["calories"] = 1000
-            self.frame["time_total"] = 600
-            self.frame["time_prep"] = 240
-            self.frame["time_cook"] = 360
-            self.frame["culture"] = "Russian"
-            self.frame["food_type"] = "snack"
-            self.frame["author"] = ["Sunset Magazine"]
-            self.frame["food_group"] = ["dairy", "sweets"]
-        else:
-            self.frame["ingredient"] = ["pasta", "sauce"]
-            self.frame["cost"] = 20.75
-            self.frame["calories"] = 500
-            self.frame["time_total"] = 1200
-            self.frame["time_prep"] = 120
-            self.frame["time_cook"] = 1080
-            self.frame["culture"] = "Italian"
-            self.frame["food_type"] = "dinner"
-            self.frame["author"] = ["Culinary Periodical"]
-            self.frame["food_group"] = ["grains"]
-
+        tokenizer = nltk.WordPunctTokenizer()
+        tokenized_string = tokenizer.tokenize(raw_input_string)
+        tagger = utils.combined_taggers
+        tagged_string = tagger.tag(tokenized_string)
+        
+        # Meal
+        meal = [w for w in self._meal_types if w in tokenized_string]
+        if meal:
+            self.frame['meal'] = meal
+        # Ingredient
+        ingredient = [w for w in self._ingredients if w in tokenized_string]
+        if ingredient:
+            self.frame['ingredient'] = ingredient
+        # Dish
+        self.frame['dish'] = [w[0] for w in tagged_string if w[1]=='NN' and
+                              w[0] not in self.frame['ingredient'] and
+                              w[0] not in self.frame['meal']]
+        
+        
+        
+    @staticmethod
     def confidence(raw_input_string):
-        for keyword in self.keywords:
-            if keyword in raw_input_string:
-                return 1.0
-        return 0.0
+        # TODO: configure minDistance on a per-keyword basis
+        minDistance = 3
+        bestDistance = float('inf')
+        
+        # Find the best keyword synset distance to input string
+        for keyword in SearchMessage.keywords:
+            keywordSyn = wordnet.synset(keyword)
+            for word in raw_input_string.split(' '):
+                for wordSyn in wordnet.synsets(word):
+                    distance = keywordSyn.shortest_path_distance(wordSyn)
+                    if distance != None:
+                        bestDistance = min(bestDistance, distance)
+                    
+        if bestDistance <= minDistance:
+            # TODO: determine best metric for this
+            # return 1.0/temperature^**bestDistance
+            return (1-(float(bestDistance)/minDistance)) * .5 + .5
+        else:
+            return 0.0
+            
+    def __repr__(self):
+        return '<%s: frame:%s>' % (self.__class__.__name__, self.frame)

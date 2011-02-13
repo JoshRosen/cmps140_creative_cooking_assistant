@@ -37,7 +37,10 @@ def main():
         # Chatbot instances should not call exit() themselves.
         # If they need to exit, they should signal so, not exit
         # themselves.
-        user_input = raw_input(PROMPT)
+        try:
+            user_input = raw_input(PROMPT)
+        except EOFError:
+            return
         bot_output = bot.handle_input(user_input, conversation_state)
         print bot_output
 
@@ -46,5 +49,6 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        # Any code that needs to run on shutdown should go here.
-        exit()
+        pass
+    # Any code that needs to run on shutdown should go here.
+    exit()

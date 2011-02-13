@@ -14,6 +14,7 @@ import glob
 import logging
 from optparse import OptionParser
 import os
+import random
 import sys
 
 from nlu import time_to_minutes
@@ -78,9 +79,6 @@ def extract_recipe_parts(recipe_detail_page):
     recipe['steps'] = steps
     recipe['num_steps'] = len(steps)
 
-    recipe['ingredients_text'] = "\n".join(recipe['ingredients'])
-    recipe['steps_text'] = "\n".join(steps)
-
     prep_time = page.find_class("prepTime")
     if len(prep_time) == 1:
         recipe['prep_time'] = time_to_minutes(prep_time[0].getnext().text)
@@ -97,18 +95,26 @@ def extract_recipe_parts(recipe_detail_page):
 
 
 def main():
-    usage = "usage: %prog [options] files"
+    """
+    A command-line interface for importing AllRecipes recipes into a database.
+    """
+    usage = "usage: %prog [options] recipe_filenames"
     parser = OptionParser(usage=usage)
     parser.add_option("--database", dest="database_url",
                       default='sqlite:///test_database.sqlite')
     parser.add_option("--logfile", dest="log_filename",
                       default='recipe_import.log')
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose")
+    parser.add_option("-r", "--random-order", action="store_true",
+        dest="random_order", help="process the input files in random order")
+    parser.add_option("-l", "--limit", type="int", dest="limit",
+        help="limit number of files to import")
     (options, args) = parser.parse_args()
     # Setup the database
     db = Database(options.database_url)
     # Configure logging
     logging.basicConfig(filename=options.log_filename, level=logging.INFO)
+    # Handle options
     if options.verbose:
         console = logging.StreamHandler()
         console.setLevel(logging.INFO)
@@ -116,11 +122,20 @@ def main():
     if not args:
         sys.stderr.write("Please specify one or more pages downloaded from "
                          "AllRecipes.com\n")
+        parser.print_help()
         exit(-1)
     if len(args) > 1:
         filenames = args
     else:
         filenames = glob.iglob(args[0])
+    if options.random_order:
+        random.shuffle(filenames)
+    if options.limit:
+        print "Importing up to %i recipes" % options.limit
+    else:
+        print "Importing up to %i recipes" % len(filenames)
+    # Import the recipes
+    imported_count = 0
     for filename in filenames:
         if not os.path.isfile(filename):
             sys.stderr.write("%s must be a valid filename\n" % filename)
@@ -131,9 +146,14 @@ def main():
             db.add_from_recipe_parts(recipe_parts)
             logging.info("Imported recipe %s from %s" %
                 (recipe_parts['title'], filename))
+            imported_count += 1
+            if options.limit and imported_count == options.limit:
+                logging.warn("Import limit reached; exiting")
+                break
         except DuplicateRecipeException:
-            logging.warn("Recipe in %s is a duplicate; skipping." % filename)
+            logging.warn("Duplicate recipe in %s; skipping." % filename)
         recipe_file.close()
+    print "Imported %i recipes." % imported_count
 
 
 if __name__ == "__main__":
