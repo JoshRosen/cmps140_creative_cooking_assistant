@@ -13,7 +13,7 @@ db.create_database_schema()
 recipes = db.get_recipes()
 
 ingredients = set()
-for recipe in recipes[:100]:
+for recipe in recipes:
     for ingredient in recipe.ingredients:
         ingredients.add(ingredient.ingredient)
 
