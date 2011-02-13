@@ -1,3 +1,7 @@
+"""
+Generates the ingredients.txt file by dumping the ingredients from the db.
+"""
+
 from database import Database
 import re
 
