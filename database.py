@@ -85,7 +85,7 @@ from sqlalchemy import create_engine, Table, Column, Integer, \
     String, ForeignKey
 from sqlalchemy.sql.expression import between
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker, join
+from sqlalchemy.orm import deferred, relationship, sessionmaker, join
 
 from nlu import extract_ingredient_parts, normalize_ingredient_name
 
@@ -279,15 +279,15 @@ class Recipe(Base):
     id = Column(Integer, primary_key=True)
     url = Column(String, unique=True)
     title = Column(String, nullable=False)
-    author = Column(String)
-    description = Column(String)
+    author = deferred(Column(String), group='recipe_text')
+    description = deferred(Column(String), group='recipe_text')
     ingredients = relationship(RecipeIngredientAssociation)
     categories = relationship('Category', secondary=recipe_categories,
                                backref='recipes')
     num_steps = Column(Integer)
     num_ingredients = Column(Integer)
-    ingredients_text = Column(String)
-    steps_text = Column(String)
+    ingredients_text = deferred(Column(String), group='recipe_text')
+    steps_text = deferred(Column(String), group='recipe_text')
     servings = Column(String)
     prep_time = Column(Integer)
     cook_time = Column(Integer)
