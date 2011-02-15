@@ -31,7 +31,7 @@ def _get_free_port():
 
 # Launch the server in a subprocess.
 _port = _get_free_port()
-_pid = Popen(["java", "-jar", JARFILE, str(_port)], stdout=PIPE)
+_pid = Popen(["java", "-jar", JARFILE, str(_port)], stdout=PIPE, stdin=PIPE)
 
 # Configure the subprocess to be killed when the program exits.
 atexit.register(lambda: _pid.kill())
