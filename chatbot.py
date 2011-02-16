@@ -1,6 +1,7 @@
 """
 Chatbot application object.
 """
+import code
 import logging
 from nlg import NaturalLanguageGenerator
 from nlu import NaturalLanguageUnderstander
@@ -30,7 +31,7 @@ class Chatbot(object):
     settings.
     """
 
-    def __init__(self, db, logger):
+    def __init__(self, db, logger, enable_debug=True):
         """
         Create a new instance of the chatbot application.
 
@@ -40,6 +41,7 @@ class Chatbot(object):
         >>> conversation_state = bot.start_new_conversation()[1]
         >>> response = bot.handle_input("Hi!", conversation_state)
         """
+        self.enable_debug = enable_debug
         self.db = db
         self.log = logger
         self.nlg = NaturalLanguageGenerator(logger.getChild('nlg'))
@@ -53,6 +55,11 @@ class Chatbot(object):
         conversation's state, return the output string and modify the
         conversation state.
         """
+        if self.enable_debug and user_input == "/debug":
+            self.debug_prompt()
+            # Return the chatbot's last output utterance, to remind the user
+            # where they were before they entered the debugging prompt.
+            return "TODO: return last bot output"
         self.log.info('%12s = "%s"' % ('user_input', user_input))
         conversation_state.last_user_input = user_input
         parsed_input = self.nlu.parse_input(user_input, conversation_state)
@@ -66,6 +73,22 @@ class Chatbot(object):
             conversation_state)
         self.log.info('%12s = "%s"' % ('bot_response', bot_response))
         return bot_response
+
+    def debug_prompt(self):
+        """
+        Enters an interactive debugging prompt. You can access system
+        components through local variables.  Type ctrl-D to exit the debug
+        prompt.
+        """
+        variables = {
+            'db': self.db,
+            'dm': self.dm,
+            'nlg': self.nlg,
+            'nlu': self.nlu,
+            'chatbot': self
+        }
+        banner = "Debugging Console (db, dm, nlg, nlu, chatbot)"
+        code.interact(banner=banner, local=variables)
 
     def start_new_conversation(self):
         """
