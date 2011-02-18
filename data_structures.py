@@ -63,16 +63,16 @@ class ParsedInputMessage(Message):
         attributes.
         """
         Message.__init__(self)
-        self.raw_input_strings = [raw_input_string]
+        self.raw_input_string = raw_input_string
         self.meta['confidence'] = ParsedInputMessage.confidence(raw_input_string)
         self.frame = dict(zip(self.frame_keys, repeat([])))
-        self.parse(raw_input_string)
+        self._parse(raw_input_string)
 
-    def parse(self, raw_input_string):
+    def _parse(self, raw_input_string):
         """
         Fills out the message meta and frame attributes.
         """
-        self.raw_input_strings.append(raw_input_string)
+        raise NotImplementedError
         
     @staticmethod
     def confidence(raw_input_string):
