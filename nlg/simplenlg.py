@@ -8,8 +8,6 @@ to this module to create a short alias.  Run this file for a demo.
 """
 import atexit
 import os
-import socket
-import time
 from subprocess import Popen, PIPE
 from py4j.java_gateway import JavaGateway, GatewayClient, java_import
 
@@ -17,44 +15,23 @@ from py4j.java_gateway import JavaGateway, GatewayClient, java_import
 JARFILE = os.path.join(os.path.dirname(__file__), 'nlgserver.jar')
 
 
-def _get_free_port():
-    """
-    Find an open port to run the server on.  See:
-    ttp://stackoverflow.com/questions/1365265/
-    """
-    sock = socket.socket()
-    sock.bind(('', 0))
-    port = sock.getsockname()[1]
-    sock.close()
-    return port
+# Launch the server on an ephemeral in a subprocess.
+_pid = Popen(["java", "-jar", JARFILE, "0"], stdout=PIPE, stdin=PIPE)
 
-
-# Launch the server in a subprocess.
-_port = _get_free_port()
-_pid = Popen(["java", "-jar", JARFILE, str(_port)], stdout=PIPE, stdin=PIPE)
+# Determine which ephemeral port the server started on.
+_port = int(_pid.stdout.readline())
 
 # Configure the subprocess to be killed when the program exits.
-atexit.register(lambda: _pid.kill())
+atexit.register(_pid.kill)
 
 # Setup the gateway.
 gateway = JavaGateway(GatewayClient(port=_port))
-
-# Wait for the server to start up.
-_timeleft = 10
-while _timeleft:
-    try:
-        java_import(gateway.jvm, "simplenlg.features.*")
-        _timeleft = 0
-    except socket.error:
-        time.sleep(1)
-        _timeleft -= 1
-
 
 # Import the SimpleNLG classes
 java_import(gateway.jvm, "simplenlg.features.*")
 java_import(gateway.jvm, "simplenlg.realiser.*")
 
-
+# Define aliases so that we don't have to use the gateway.jvm prefix.
 NPPhraseSpec = gateway.jvm.NPPhraseSpec
 PPPhraseSpec = gateway.jvm.PPPhraseSpec
 SPhraseSpec = gateway.jvm.SPhraseSpec
