@@ -14,8 +14,8 @@ class DropPipeline(object):
     Drops invalid items.
     """
     def process_item(self, domain, item):
-        print "PARENT: ", item.parent
-        print "NAME: ", item.name
+        print "PARENT: ", type(item.parent)
+        print "NAME: ", type(item.name)
         if item.parent == None or item.name == None or item.parent == '' or item.name == '':
             raise DropItem("Item has no parent or name.")
         else:
@@ -26,6 +26,8 @@ class SanitizePipeline(object):
     Cleans up the text in the item fields.
     """
     def process_item(self, domain, item):
+        print "CLEAN: ", item
+        if item.parent == None: raise DropItem("Item has no parent or name.")
         def clean(string):
             re.escape(item.parent.lower())
             

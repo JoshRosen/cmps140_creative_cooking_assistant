@@ -21,7 +21,7 @@ for ingredient in ingredients:
     # santitize: remove words after commas and in elipses
     ingredient_name = ingredient.name
     comma_pos = ingredient.name.find(',')
-    elipse_pos = ingredient.name.find('(')
     if comma_pos != -1: ingredient_name = ingredient_name[:comma_pos]
+    elipse_pos = ingredient.name.find('(')
     if elipse_pos != -1: ingredient_name = ingredient_name[:elipse_pos]
     ingredients_file.write('%s\n' % ingredient_name)
