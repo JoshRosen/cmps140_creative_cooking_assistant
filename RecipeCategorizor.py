@@ -1,4 +1,4 @@
-import freebase #used to access the freebase database
+#import freebase #used to access the freebase database
 import nltk #durp
 import re #used for regex splitting
 import sqlite3 #import the sqlite3 libraries
@@ -24,16 +24,16 @@ def getCuisine(recipe,DEBUG=0):
 
    if(DEBUG): print "getCuisine::Input Recipe: " + str(recipe)
    
-   for w in recipe: #go through the input and start querying freebase
-      #this is the MQL query. Not the sql query 
-      #query = [{
-      #   "name" : w,
-      #   "type" : "/food/ingredient",
-      #   "cuisine" : []
-      #}]
-      c = connection.cursor()
+   for word in recipe: #go through the input and start querying sqlite database
+
+      #Check if there are any words like "American" or "Japanese" in there!
+      #Note: How should we handle this?
+      for w in checkAdjectivals([word]):
+         cats.append(w);
+      
+      c = connection.cursor() #connect
       #make an sql query
-      query = "SELECT cuisine FROM ingredients WHERE name='{0}'".format(w)
+      query = "SELECT cuisine FROM ingredients WHERE name='{0}'".format(word)
       if(DEBUG):print "getCuisine::query- " + query
       c.execute(query)
       #result = freebase.mqlread(query) #query the freebase db
@@ -62,6 +62,40 @@ def countIngredients(ing):
    for word in ing:
       addToDict(dict,word)
    return dict
+
+def checkAdjectivals(words):
+    """
+    function checkAdjectivals(words)
+    checks if any of the words are in the list of country adjectivals. These
+    are located in "ListOfAdj" and this should be located in the same dir,
+    or modify the line:
+    adjList = loadFileToArray("ListOfAdj")
+
+    arguments: Array of words to check against
+    returns: dictionary of results with counts.
+    """
+    adjList = loadFileToArray("ListOfAdj")
+    results = {}
+    for word in words:
+	if(word in adjList):
+	    addToDict(results, word)
+    return results
+	
+	
+
+def loadFileToArray(file):
+    """
+    function loadFileToArray(file)
+    reads a file into an array. Makes it super easy to do things.
+    arguments: file
+    returns: an array consisting of each line of the file
+    """
+    f = open(file, 'r')
+    result = []
+    for line in f:
+	result.append(re.sub('\n','',line))
+    return result
+
 
 def readLines(filename,limit=5):
    """
@@ -147,4 +181,4 @@ def printDictionary(dict):
       print "[{0},{1}]".format(lines[0],lines[1])
    
 # Example usage!:
-printDictionary(getCuisine(["Apple", "Prosciutto", "Pasta", "Stuffed Chicken Breast"]))
+printDictionary(getCuisine(["Apple", "Prosciutto", "Pasta", "Stuffed Chicken Breast", "Israeli", "American"]))
