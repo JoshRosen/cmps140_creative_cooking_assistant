@@ -1,96 +1,106 @@
 import freebase #used to access the freebase database
 import nltk #durp
 import re #used for regex splitting
+import sqlite3 #import the sqlite3 libraries
 from operator import itemgetter #used for list sorting
 
+def getCuisine(recipe,DEBUG=0):
+   """
+   My attempt at pydoc.
+   function getCuisine
+   arguments: recipe
+      An array that is a list of words (could be title, could be ingredients)
+      such as:
+      ["Apple Pie Spice","Prosciutto", "black pepper"]
+   returns: an array of strings (0 or more) which is the list of cuisines
+   that are associated with this recipe, as well as the frequency of
+   occurrances. 
+      ["Italian":1]
+   """
+   
+   cats = [] #the map for the cuisines. This will hold frequencies of cuisines
+   connection = sqlite3.connect("ingredients.db") #connect to the ingredientsdb
+   c = connection.cursor() #do that connection thing
 
-#query = {
-#    "name" : "prosciutto",
-#    "type" : "/food/ingredient",
-#    "cuisine" : []
-#    }
-#result = freebase.mqlread(query)
-#print result["cuisine"]
-
-def getCuisine(recipe):
-    """
-    My attempt at pydoc.
-    function getCuisine
-    arguments: recipe
-    A string that is a list of words (could be title, could be ingredients)
-    returns: an array of strings (0 or more) which is the list of cuisines that are associated with this recipe, as well as the frequency of occurrances. 
-    """
-    tokens = nltk.word_tokenize(recipe)
-    #tagged = nltk.pos_tag(tokens)
-    cats = [] #the map for the cuisines. This will hold frequencies of cuisines
-    for w in tokens:
-      query = [{
-         "name" : w,
-         "type" : "/food/ingredient",
-         "cuisine" : []
-      }]
-      result = freebase.mqlread(query)
+   if(DEBUG): print "getCuisine::Input Recipe: " + str(recipe)
+   
+   for w in recipe: #go through the input and start querying freebase
+      #this is the MQL query. Not the sql query 
+      #query = [{
+      #   "name" : w,
+      #   "type" : "/food/ingredient",
+      #   "cuisine" : []
+      #}]
+      c = connection.cursor()
+      #make an sql query
+      query = "SELECT cuisine FROM ingredients WHERE name='{0}'".format(w)
+      if(DEBUG):print "getCuisine::query- " + query
+      c.execute(query)
+      #result = freebase.mqlread(query) #query the freebase db
       #clean up the array
-      for w in result:
-	  if(len(w["cuisine"]) > 0):
-	      for c in w["cuisine"]:
-		  cats.append(c)
-    #count the ingredients (solves issues like non-unique keys), counts up
-    #all the occurrances. ie: {...'Italian':1,...,'Italian':1} becomes
-    # {...,'Italian':2,....
-    result = countIngredients(cats)
-    return result
+      for w in c:
+         if(DEBUG):print "getCuisine::Query Results: " + str(w)
+         for cui in w:
+            if(len(cui) > 0):
+	       for word in cui.split(','):
+                  if(DEBUG):print "getCuisine:: innermost for Adding: " + word
+                  cats.append(word)
+   #count the ingredients (solves issues like non-unique keys), counts up
+   #all the occurrances. ie: {...'Italian':1,...,'Italian':1} becomes
+   # {...,'Italian':2,....
+   result = countIngredients(cats)
+   return result
 
 def countIngredients(ing):
-    """
-    function countIngredients(ing)
-    helper function for 'getCuisine' function
-    arguments: ing
-       ing is an array of ingredients in key:value pairing. 'Cuisine':Count
-    """
-    dict={}
-    for word in ing:
-	addToDict(dict,word)
-    return dict
+   """
+   function countIngredients(ing)
+   helper function for 'getCuisine' function
+   arguments: ing
+      ing is an array of ingredients in key:value pairing. 'Cuisine':Count
+   """
+   dict={}
+   for word in ing:
+      addToDict(dict,word)
+   return dict
 
 def readLines(filename,limit=5):
-    """
-    function readLines
-    used for reading all the lines in a file that is the list of recipies
-    in their raw file name. Which is in the format of 
-    '1-2-3-Cheddar-Broccoli-Casserole.html'
-    """
-    result={}
-    wordsCount={}
-    totLimit=limit
-    counter=1;
-    f = open(filename,'r')
-    for line in f:
-	line = cleanLine(line)
-	for word in line.split():
-	    addToDict(wordsCount,word)
-	print "{0}/{1} Operating on line: {2}".format(counter,totLimit,line)
-	print "Cuisine: " + str(getCuisine(line))
-	result = dict_add([result,getCuisine(line)])
-	limit -= 1
-	if(limit < 0): break
-	counter+=1
-    print "Ingredients Result:"
-    printDictionary(result)
-    print "Words Result: "
-    printDictionary(wordsCount)
+   """
+   function readLines
+   used for reading all the lines in a file that is the list of recipies
+   in their raw file name. Which is in the format of 
+   '1-2-3-Cheddar-Broccoli-Casserole.html'
+   """
+   result={}
+   wordsCount={}
+   totLimit=limit
+   counter=1;
+   f = open(filename,'r')
+   for line in f:
+      line = cleanLine(line)
+      for word in line.split():
+         addToDict(wordsCount,word)
+         #print "{0}/{1} Operating on line: {2}".format(counter,totLimit,line)
+         #print "Cuisine: " + str(getCuisine(line))
+         result = dict_add([result,getCuisine(line)])
+         limit -= 1
+         if(limit < 0): break
+         counter+=1
+         print "Ingredients Result:"
+         printDictionary(result)
+         print "Words Result: "
+         printDictionary(wordsCount)
 
 #add word to dictionary
 def addToDict(dict,word):
-    """
-    function addToDict
-    adds (string)argument 2 to (dict)argument 1. Does checking if it's
-    already in there, it'll just increment the count
-    """
-    if(dict.has_key(word)):
-	dict[word] = dict[word] + 1
-    else:
-	dict[word] = 1
+   """
+   function addToDict
+   adds (string)argument 2 to (dict)argument 1. Does checking if it's
+   already in there, it'll just increment the count
+   """
+   if(dict.has_key(word)):
+      dict[word] = dict[word] + 1
+   else:
+      dict[word] = 1
 
 
 #dict add from Josh. Merges two dicts
@@ -104,40 +114,37 @@ def dict_add(dicts):
    """
    keys = set()
    for d in dicts:
-       for k in d.keys():
-           keys.add(k)
+      for k in d.keys():
+         keys.add(k)
    merged = {}
    for k in keys:
-       merged[k] = 0
+      merged[k] = 0
    for d in dicts:
-       for (key, value) in d.items():
-           merged[key] += value
+      for (key, value) in d.items():
+         merged[key] += value
    return merged
 
 
 def cleanLine(line):
-    """
-    function cleanLine
-    split up the line, which comes in like this:
-     '10-Minute-Zesty-Salsa.html' so we need to nuke the special chars
-    returns the cleaned up line
-    """
-    res = re.split('[\n]|[-]|[\.html]{5}',line)
-    while "" in res:
-	res.remove("")
-    result = ""
-    for r in res:
-	result += r + " "
-    return result
+   """
+   function cleanLine
+   split up the line, which comes in like this:
+    '10-Minute-Zesty-Salsa.html' so we need to nuke the special chars
+   returns the cleaned up line
+   ***now depreciated, but keep it in here just in case***
+   """
+   res = re.split('[\n]|[-]|[\.html]{5}',line)
+   while "" in res:
+      res.remove("")
+      result = ""
+   for r in res:
+      result += r + " "
+   return result
 
 def printDictionary(dict):
-    sList = sorted(dict.items(), key=itemgetter(1))
-    for lines in sList:
-	print "[{0},{1}]".format(lines[0],lines[1])
-    
-	
-
-      
-#getCuisine("Apple and Prosciutto Stuffed Chicken Breast")
-#readLines("RecipesList",100000)
-#print(getCuisine(""))
+   sList = sorted(dict.items(), key=itemgetter(1))
+   for lines in sList:
+      print "[{0},{1}]".format(lines[0],lines[1])
+   
+# Example usage!:
+printDictionary(getCuisine(["Apple", "Prosciutto", "Pasta", "Stuffed Chicken Breast"]))
