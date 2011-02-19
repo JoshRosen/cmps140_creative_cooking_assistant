@@ -1,5 +1,8 @@
+from nltk.corpus import wordnet
+
 from data_structures import ParsedInputMessage
 
 class YesNoMessage(ParsedInputMessage):
-    pass
+    def _parse(self, raw_input_message):
+        pass
 

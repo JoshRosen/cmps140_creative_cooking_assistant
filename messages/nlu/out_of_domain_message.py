@@ -1,5 +1,6 @@
 from data_structures import ParsedInputMessage
 
 class OutOfDomainMessage(ParsedInputMessage):
-    pass
+    def _parse(self, raw_input_message):
+        pass
 

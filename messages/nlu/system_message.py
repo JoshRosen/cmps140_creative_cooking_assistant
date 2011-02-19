@@ -4,7 +4,7 @@ class SystemMessage(ParsedInputMessage):
     frame_keys = ['action']
     keywords = ['exit', '/debug']
                 
-    def parse(self, raw_input_string):
+    def _parse(self, raw_input_string):
         """
         Fills out message meta and frame attributes
         """
