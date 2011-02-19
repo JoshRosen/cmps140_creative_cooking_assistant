@@ -7,7 +7,6 @@ from nlg import NaturalLanguageGenerator
 from nlu import NaturalLanguageUnderstander
 from messages.nlu import *
 from dm import DialogueManager
-from data_structures import ConversationState
 from data_structures import ParsedInputMessage
 
 # Monkey-patch the Python 2.7 logger.getChild() method into the logger class,
@@ -39,8 +38,7 @@ class Chatbot(object):
         >>> from database import Database
         >>> db = Database('sqlite:///:memory:')
         >>> bot = Chatbot(db, logging.getLogger())
-        >>> conversation_state = bot.start_new_conversation()[1]
-        >>> response = bot.handle_input("Hi!", conversation_state)
+        >>> response = bot.handle_input("Hi!")
         """
         self.enable_debug = enable_debug
         self.db = db
@@ -49,30 +47,46 @@ class Chatbot(object):
         self.nlu = NaturalLanguageUnderstander(0.0, logger.getChild('nlu'))
         self.dm = DialogueManager(db, logger.getChild('dm'))
         self.log.debug("Chatbot instantiated")
+        self.last_bot_output = ""
 
-    def handle_input(self, user_input, conversation_state):
+        # Register the NLU messages we want
+        self.nlu.register_message(YesNoMessage)
+        self.nlu.register_message(SearchMessage)
+
+    def __getstate__(self):
+        # When pickling this object, don't pickle the logger object; store its
+        # name instead.
+        result = self.__dict__.copy()
+        result['log'] = self.log.name
+        return result
+
+    def __setstate__(self, state):
+        # When unpickling this object, get a logger whose name was stored in
+        # the pickle.
+        self.__dict__ = state
+        self.log = logging.getLogger(self.log)
+
+    def handle_input(self, user_input):
         """
-        Given a string of user input and an object representing the
-        conversation's state, return the output string and modify the
-        conversation state.
+        Given a string of user input, return the output string.
         """
         if self.enable_debug and user_input == "/debug":
             self.debug_prompt()
             # Return the chatbot's last output utterance, to remind the user
             # where they were before they entered the debugging prompt.
-            return "TODO: return last bot output"
+            return self.last_bot_output
         self.log.info('%12s = "%s"' % ('user_input', user_input))
-        conversation_state.last_user_input = user_input
-        parsed_input = self.nlu.parse_input(user_input, conversation_state)
+        self.last_user_input = user_input
+        parsed_input = self.nlu.parse_input(user_input)
         # If the input could not be parsed, we could include code here to
         # use a general-purpose chatbot that can guide the user back to the
         # topic.
         self.log.debug('%12s = "%s"' % ('parsed_input', parsed_input))
-        content_plan = self.dm.plan_response(parsed_input[0], conversation_state)
+        content_plan = self.dm.plan_response(parsed_input)
         self.log.debug('%12s = "%s"' % ('content_plan', content_plan))
-        bot_response = self.nlg.generate_response(content_plan,
-            conversation_state)
+        bot_response = self.nlg.generate_response(content_plan)
         self.log.info('%12s = "%s"' % ('bot_response', bot_response))
+        self.last_bot_output = bot_response
         return bot_response
 
     def debug_prompt(self):
@@ -91,15 +105,8 @@ class Chatbot(object):
         banner = "Debugging Console (db, dm, nlg, nlu, chatbot)"
         code.interact(banner=banner, local=variables)
 
-    def start_new_conversation(self):
+    def get_greeting(self):
         """
-        Return a tuple containing an initial message and new
-        conversation state.
+        Return an initial message from the chatbot.
         """
-        conversation_state = ConversationState()
-        
-        # Register the NLU messages we want
-        self.nlu.register_message(YesNoMessage, conversation_state)
-        self.nlu.register_message(SearchMessage, conversation_state)
-        
-        return ("Hello!", conversation_state)
+        return "Hello!"

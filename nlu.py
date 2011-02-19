@@ -7,7 +7,7 @@ import logging
 from operator import itemgetter
 from nltk.stem.wordnet import WordNetLemmatizer
 
-from data_structures import ParsedInputMessage, Message, ConversationState
+from data_structures import ParsedInputMessage, Message
 # pylint:disable=E0611
 from wordlists import units_of_measure, food_adjectives
 
@@ -132,12 +132,9 @@ def extract_ingredient_parts(ingredient_string):
 
 class NaturalLanguageUnderstander(object):
     """
-    Object that performs natural language understanding.  No
-    conversation state is stored in this object.
-    
-    
+    Object that performs natural language understanding.
+
     >>> logger = logging.getLogger()
-    >>> conversation_state = ConversationState()
     >>> confidenceThreshold = .5
     >>> nlu = NaturalLanguageUnderstander(confidenceThreshold, logger)
     
@@ -151,24 +148,21 @@ class NaturalLanguageUnderstander(object):
     ...     def confidence(raw_input_string):
     ...         return 0.0
     
-    >>> nlu.register_message(EchoMessage, conversation_state)
-    >>> nlu.expect_message(EchoMessage, conversation_state)
+    >>> nlu.register_message(EchoMessage)
+    >>> nlu.expect_message(EchoMessage)
     >>> message1 = nlu.parse_input('Rain falls from the sky. Clouds rise '
-    ...                               'from the ground.', conversation_state)
+    ...                               'from the ground.')
     >>> message1[0].frame['echo']
     'echo: Rain falls from the sky. Clouds rise from the ground.'
-    >>> message2 = nlu.parse_input('Natural Language gives my hives.',
-    ...                             conversation_state)
+    >>> message2 = nlu.parse_input('Natural Language gives my hives.')
     >>> message2[0].frame['echo']
     'echo: Natural Language gives my hives.'
-    >>> nlu.acknowledge_message(conversation_state)
-    >>> message3 = nlu.parse_input('I like turtles...',
-    ...                             conversation_state)
+    >>> nlu.acknowledge_message()
+    >>> message3 = nlu.parse_input('I like turtles...')
     >>> message3
     []
     >>> nlu.set_confidence_threshold(0.0)
-    >>> message3 = nlu.parse_input('I like turtles...',
-    ...                             conversation_state)
+    >>> message3 = nlu.parse_input('I like turtles...')
     >>> len(message3)
     1
     >>> type(message3[0])
@@ -187,13 +181,23 @@ class NaturalLanguageUnderstander(object):
         self.messageTypes = []
         # set confidence threshold
         self.confidenceThreshold = confidenceThreshold
-        
 
-    def parse_input(self, user_input, conversation_state ):
+    def __getstate__(self):
+        # When pickling this object, don't pickle the logger object; store its
+        # name instead.
+        result = self.__dict__.copy()
+        result['log'] = self.log.name
+        return result
+
+    def __setstate__(self, state):
+        # When unpickling this object, get a logger whose name was stored in
+        # the pickle.
+        self.__dict__ = state
+        self.log = logging.getLogger(self.log)
+
+    def parse_input(self, user_input):
         """
-        Given a string of user input and an object representing the
-        conversation's state, return a ParsedInputMessage and modify
-        the conversation state.
+        Given a string of user input, return a ParsedInputMessage.
         """
         validMessages = []
         # If expecting a message, generate it not matter what
@@ -217,13 +221,13 @@ class NaturalLanguageUnderstander(object):
             
         return validMessages
         
-    def acknowledge_message(self, conversation_state):
+    def acknowledge_message(self):
         """
         Stops expecting extract_message to fillout the expected message.
         """
         self.ExpectedMessage = None
             
-    def expect_message(self, MessageClass, conversation_state):
+    def expect_message(self, MessageClass):
         """
         Sets extract_message to expect and fillout this message.
         """
@@ -239,7 +243,7 @@ class NaturalLanguageUnderstander(object):
         """
         self.confidenceThreshold = confidenceThreshold
             
-    def register_message(self, MessageClass, conversation_state):
+    def register_message(self, MessageClass):
         """
         Adds a message class to the types of messages to check against
         """
