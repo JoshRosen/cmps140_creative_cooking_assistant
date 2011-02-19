@@ -21,13 +21,14 @@ class WebChatServer(object):
     callable WSGI applications.
     """
 
-    def __init__(self, db):
+    def __init__(self, db, logger):
         """
         Create a new WSGI application providing a web-based chat
         interface to the given chatbot.
         """
         self.state_datastore = {}
         self.db = db
+        self.logger = logger
 
     def _save_chatbot(self, chatbot, session_id):
         """
@@ -51,10 +52,7 @@ class WebChatServer(object):
         if method == 'GET':
             session_id = str(uuid.uuid4())
             # Start a new conversation
-            logger = logging.getLogger('chatbot')
-            logger.addHandler(logging.StreamHandler())
-            logger.setLevel(logging.DEBUG)
-            chatbot = Chatbot(self.db, logger)
+            chatbot = Chatbot(self.db, self.logger)
             greeting = chatbot.get_greeting()
             # Save the chatbot in the key-value store
             self._save_chatbot(chatbot, session_id)
@@ -88,7 +86,9 @@ def demo():
     """
     from cherrypy import wsgiserver
     db = Database('sqlite:///test_database.sqlite')
-    chat_app = WebChatServer(db)
+    logger = logging.getLogger('chatbot_server')
+    logging.basicConfig(level=logging.DEBUG)
+    chat_app = WebChatServer(db, logger)
     server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8080), chat_app)
     try:
         print "Started chatbot web server."
