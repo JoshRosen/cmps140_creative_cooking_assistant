@@ -5,6 +5,7 @@ import code
 import logging
 from nlg import NaturalLanguageGenerator
 from nlu import NaturalLanguageUnderstander
+from messages.nlu import *
 from dm import DialogueManager
 from data_structures import ConversationState
 from data_structures import ParsedInputMessage
@@ -96,5 +97,9 @@ class Chatbot(object):
         conversation state.
         """
         conversation_state = ConversationState()
-        self.nlu.register_message(ParsedInputMessage, conversation_state)
+        
+        # Register the NLU messages we want
+        self.nlu.register_message(YesNoMessage, conversation_state)
+        self.nlu.register_message(SearchMessage, conversation_state)
+        
         return ("Hello!", conversation_state)
