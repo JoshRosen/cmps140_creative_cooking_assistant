@@ -2,19 +2,75 @@ from data_structures import ParsedInputMessage
 import random
 import nltk
 from nltk.corpus import wordnet
-import utils
+from utils import stem_words
 import wordlists
+
+def get_ingredients(tokenized_string, enum=True):
+    """
+    Returns a tuple of (index, ingredient) or a list of ingredients from a
+    tokenized string.
+    
+    >>> raw_input_string = "I like apples, cinnamon, and pepper."
+    >>> tokenizer = nltk.WordPunctTokenizer()
+    >>> tokenized_string = tokenizer.tokenize(raw_input_string)
+    >>> for i,w in get_ingredients(tokenized_string): print i,w
+    2 appl
+    4 cinnamon
+    7 pep
+    """
+    
+    stemmed_string = stem_words(tokenized_string)
+    stemmed_ingredients = stem_words(wordlists.ingredients)
+    return _extract_words_from_list(stemmed_ingredients, stemmed_string, enum)
+    
+def get_meals(tokenized_string, enum=True):
+    """
+    Returns a tuple of (index, meal) or a list of meals from a
+    tokenized string.
+    
+    >>> raw_input_string = "I want cats for breakfast and dogs for dinner."
+    >>> tokenizer = nltk.WordPunctTokenizer()
+    >>> tokenized_string = tokenizer.tokenize(raw_input_string)
+    >>> for i,w in get_meals(tokenized_string): print i,w
+    4 breakfast
+    8 din
+    """
+    
+    stemmed_string = stem_words(tokenized_string)
+    stemmed_ingredients = stem_words(wordlists.meal_types)
+    return _extract_words_from_list(stemmed_ingredients, stemmed_string, enum)
+
+def _extract_words_from_list(word_list, string_list, enum=True):
+    """
+    """
+    
+    for i, word in enumerate(string_list):
+        if word in word_list:
+            if enum:
+                yield (i, word)
+            else:
+                yield word
+
+class GenericFrame:
+    def __init__(self, name, prefference=0, descriptor=None):
+        self.name = None
+        self.prefference = None
+        self.descriptor = None
+
+class IngredientFrame(GenericFrame):
+    pass
+class MealFrame(GenericFrame):
+    pass
 
 class SearchMessage(ParsedInputMessage):
     # attributes in the frame
     #frame_keys = ['ingredientients', 'cost', 'callories', 'time_total', 'time_prep',
     #        'time_cook', 'culture', 'actions', 'instruments', 'food_type',
     #        'author', 'meal_time', 'course', 'taste', 'food_group']
-    frame_keys = ['meal', 'dish', 'ingredient']
+    frame_keys = ['ingredient', 'dish', 'meal', 'cuisine']
     keywords = ['desire.v.01', 'like.v.05', 'need.n.02', 'looking.n.02',
                 'search.v.02', 'want.v.03', 'want.v.04']
     _meal_types = wordlists.meal_types
-    _ingredients = wordlists.ingredients
     
     
     def _parse(self, raw_input_string):
@@ -27,18 +83,23 @@ class SearchMessage(ParsedInputMessage):
         tagger = utils.combined_taggers
         tagged_string = tagger.tag(tokenized_string)
         
-        # Meal
-        meal = [w for w in self._meal_types if w in tokenized_string]
-        if meal:
-            self.frame['meal'] = meal
-        # Ingredient
-        ingredient = [w for w in self._ingredients if w in tokenized_string]
-        if ingredient:
-            self.frame['ingredient'] = ingredient
-        # Dish
-        self.frame['dish'] = [w[0] for w in tagged_string if w[1]=='NN' and
-                              w[0] not in self.frame['ingredient'] and
-                              w[0] not in self.frame['meal']]
+        # Ingredients
+        for i, stem_ingredient in get_ingredients(tokenized_string):
+            ingredient = tokenized_string[i]
+            self.frame['ingredient'].append(IngredientFrame(
+                                            name = ingredient,
+                                            descriptor = [], # siblings JJ
+                                            prefference = 0, # RB = not or n't
+                                            ))
+        # Meals
+        for i, stem_ingredient in get_ingredients(tokenized_string):
+            meal = tokenized_string[i]
+            self.frame['ingredient'].append(MealFrame(
+                                            name = meal,
+                                            descriptor = [], # siblings JJ
+                                            prefference = 0, # RB = not or n't
+                                            ))
+        
         
         
         
