@@ -1,0 +1,3 @@
+To run simply execute run_scrapers.sh from the current directory.
+Generated text files will be moved into their respective folders.
+  * ingredients.txt => wordtree/ingredients.txt

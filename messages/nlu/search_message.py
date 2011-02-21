@@ -17,11 +17,10 @@ class SearchMessage(ParsedInputMessage):
     _ingredients = wordlists.ingredients
     
     
-    def parse(self, raw_input_string):
+    def _parse(self, raw_input_string):
         """
         Fills out message meta and frame attributes
         """
-        super(SearchMessage, self).parse(raw_input_string)
         
         tokenizer = nltk.WordPunctTokenizer()
         tokenized_string = tokenizer.tokenize(raw_input_string)

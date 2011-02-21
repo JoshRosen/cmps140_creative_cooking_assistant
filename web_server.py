@@ -21,23 +21,24 @@ class WebChatServer(object):
     callable WSGI applications.
     """
 
-    def __init__(self, chatbot):
+    def __init__(self, db, logger):
         """
         Create a new WSGI application providing a web-based chat
         interface to the given chatbot.
         """
-        self.chatbot = chatbot
         self.state_datastore = {}
+        self.db = db
+        self.logger = logger
 
-    def _save_conversation_state(self, conversation_state, session_id):
+    def _save_chatbot(self, chatbot, session_id):
         """
-        Store the conversation state in the key-value store.
+        Store the chatbot in the key-value store.
         """
-        self.state_datastore[session_id] = cPickle.dumps(conversation_state)
+        self.state_datastore[session_id] = cPickle.dumps(chatbot)
 
-    def _load_conversation_state(self, session_id):
+    def _load_chatbot(self, session_id):
         """
-        Load the conversation state from the key-value store.
+        Load the chatbot from the key-value store.
         """
         return cPickle.loads(self.state_datastore[session_id])
 
@@ -51,10 +52,10 @@ class WebChatServer(object):
         if method == 'GET':
             session_id = str(uuid.uuid4())
             # Start a new conversation
-            (greeting, conversation_state) = \
-                self.chatbot.start_new_conversation()
-            # Save the conversation state in the key-value store
-            self._save_conversation_state(conversation_state, session_id)
+            chatbot = Chatbot(self.db, self.logger)
+            greeting = chatbot.get_greeting()
+            # Save the chatbot in the key-value store
+            self._save_chatbot(chatbot, session_id)
             # Return HTML of chat interface
             start_response('200 OK', [('content-type', 'text/html')])
             template = open('chat_interface.html').read()
@@ -68,12 +69,11 @@ class WebChatServer(object):
             session_id = post['session_id'][0]
             chat_message = post['chat_message'][0]
             # Load the saved state
-            conversation_state = self._load_conversation_state(session_id)
+            chatbot = self._load_chatbot(session_id)
             # Get the bot's output
-            output = self.chatbot.handle_input(chat_message,
-                                               conversation_state)
-            # Store the modified conversation state
-            self._save_conversation_state(conversation_state, session_id)
+            output = chatbot.handle_input(chat_message)
+            # Save the chatbot in the key-value store
+            self._save_chatbot(chatbot, session_id)
             # Return the output as text
             start_response('200 OK', [('content-type', 'text/plain')])
             return (output, )
@@ -86,11 +86,9 @@ def demo():
     """
     from cherrypy import wsgiserver
     db = Database('sqlite:///test_database.sqlite')
-    logger = logging.getLogger('chatbot')
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.DEBUG)
-    shared_chatbot = Chatbot(db, logger)
-    chat_app = WebChatServer(shared_chatbot)
+    logger = logging.getLogger('chatbot_server')
+    logging.basicConfig(level=logging.DEBUG)
+    chat_app = WebChatServer(db, logger)
     server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', 8080), chat_app)
     try:
         print "Started chatbot web server."

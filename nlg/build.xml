@@ -28,8 +28,9 @@
     <target name="jar" depends="compile, manifest">
         <jar destfile="${build}/${jarname}" manifest="${build}/MANIFEST.MF">
           <!-- See http://stackoverflow.com/questions/515428/ -->
-          <zipgroupfileset dir="${lib}" includes="*.jar" />
+          <zipgroupfileset dir="${lib}" includes="*.jar"/>
           <fileset dir="${build}" includes="*.class" />
+          <fileset dir="${lib}" includes="*.txt" />
         </jar>
     </target>
 

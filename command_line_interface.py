@@ -30,7 +30,7 @@ def main():
     logger = logging.getLogger('chatbot')
     # Setup the chatbot
     bot = Chatbot(db, logger)
-    (greeting, conversation_state) = bot.start_new_conversation()
+    greeting = bot.get_greeting()
 
     print greeting
     while 1:
@@ -41,7 +41,7 @@ def main():
             user_input = raw_input(PROMPT)
         except EOFError:
             return
-        bot_output = bot.handle_input(user_input, conversation_state)
+        bot_output = bot.handle_input(user_input)
         print bot_output
 
 

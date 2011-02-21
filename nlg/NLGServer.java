@@ -13,7 +13,11 @@ public class NLGServer {
         GatewayServer gatewayServer = new GatewayServer(new NLGServer(),
                                                         port);
         gatewayServer.start();
-        System.out.println("NLG Gateway Server started on port " + port);
+        /* Print out the listening port so that clients can discover it. */
+        int listening_port = gatewayServer.getListeningPort();
+        System.out.println("" + listening_port);
+        System.out.println("NLG Gateway Server started on port " +
+            listening_port);
 
         /* Exit on EOF or broken pipe.  This ensures that the server dies if
          * the program that launched the server dies. */

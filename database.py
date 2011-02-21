@@ -111,10 +111,21 @@ class Database(object):
         For the URL format, see
         http://www.sqlalchemy.org/docs/core/engines.html#database-urls
         """
-        self._engine = create_engine(database_url)
+        self._database_url = database_url
+        self._engine = create_engine(self._database_url)
         self._sessionmaker = sessionmaker(bind=self._engine)
         self._session = self._sessionmaker()
         self.create_database_schema()
+
+    def __getstate__(self):
+        # When pickling this object, use the database url as the pickled
+        # representation.
+        return self._database_url
+
+    def __setstate__(self, database_url):
+        # When unpickling this object, connect to the database_url stored
+        # during pickling.
+        self.__init__(database_url)
 
     def create_database_schema(self):
         """

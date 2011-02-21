@@ -4,26 +4,6 @@ from itertools import repeat
 Data structures used for communication between modules.
 """
 
-class ConversationState(object):
-    """
-    Stores all state associated with a conversation.  Instances are
-    created when a conversation begins and are passed throughout the
-    application.  The receiver of a ConversationState will update the
-    state by modifying the ConversationState that it receives.
-
-    The ConversationState can be persisted by pickling it using the
-    pickle or cPickle modules.
-
-    This makes it easy to put the system into specific states for
-    testing, without having to write complex test setup and teardown
-    methods.
-    """
-
-    def __init__(self):
-        self.user_name = ""
-        self.last_user_input = ""
-        self.current_state = "greeting"
-
 
 class Message(object):
     """
@@ -63,16 +43,16 @@ class ParsedInputMessage(Message):
         attributes.
         """
         Message.__init__(self)
-        self.raw_input_strings = [raw_input_string]
+        self.raw_input_string = raw_input_string
         self.meta['confidence'] = ParsedInputMessage.confidence(raw_input_string)
-        self.frame = dict(zip(self.frame_keys, repeat(None)))
-        self.parse(raw_input_string)
+        self.frame = dict(zip(self.frame_keys, repeat([])))
+        self._parse(raw_input_string)
 
-    def parse(self, raw_input_string):
+    def _parse(self, raw_input_string):
         """
         Fills out the message meta and frame attributes.
         """
-        self.raw_input_strings.append(raw_input_string)
+        raise NotImplementedError
         
     @staticmethod
     def confidence(raw_input_string):
