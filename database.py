@@ -4,7 +4,6 @@ Object-based interface to the database used by the chatbot.
 The database is accessed through the Database object:
 
 >>> db = Database("sqlite:///:memory:")
->>> db.create_database_schema()
 
 (Note: for now, sqlite is the only supported database; support for other
 databases will require adding string length constraints to some of the database
@@ -105,7 +104,7 @@ from sqlalchemy import create_engine, Table, Column, Integer, \
     String, ForeignKey
 from sqlalchemy.sql.expression import between
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import deferred, relationship, sessionmaker, join
+from sqlalchemy.orm import deferred, relationship, sessionmaker, join, backref
 from sqlalchemy.interfaces import PoolListener
 
 from nlu import extract_ingredient_parts, normalize_ingredient_name
@@ -407,6 +406,69 @@ class Recipe(Base):
         return result
 
 
+class IngredientType(Base):
+    """
+    Represents a type of ingredient, like meat or root vegetable.
+    Implements a taxonomy through subclass-superclass relationships.
+
+    For now, there's no function to find recipes containing ingredients that
+    are of a certain type (e.g. "Find me recipes that don't contain meat.")
+    But, you can walk from the top of a tree in the taxonomy to find all
+    ingredients of type 'meat' and simply add those to the exclude_ingredients
+    list passed to get_recipes().
+
+    >>> db = Database("sqlite:///:memory:")
+    >>> vegetables = IngredientType("vegetable")
+    >>> root_vegetables = IngredientType("root vegetable")
+    >>> root_vegetables.supertype = vegetables
+    >>> yam = Ingredient("yam")
+    >>> yam.ingredient_type = root_vegetables
+    >>> db._session.add(root_vegetables)
+    >>> db._session.commit()
+
+    >>> yam.ingredient_type.name
+    'root vegetable'
+    >>> yam.is_type_of('vegetable')
+    True
+    >>> yam.is_type_of('fruit')
+    False
+
+    >>> root_vegetables.is_subtype_of('vegetable')
+    True
+    >>> root_vegetables.is_subtype_of('root vegetable')
+    True
+    >>> root_vegetables.is_subtype_of('fruit')
+    False
+    >>> root_vegetables.ingredients[0].name
+    'yam'
+    """
+    __tablename__ = 'ingredient_types'
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    supertype_id = Column(Integer, ForeignKey('ingredient_types.id'))
+    subtypes = relationship("IngredientType",
+        backref=backref('supertype', remote_side=id))
+
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return "<IngredientType(%s)>" % self.name
+
+    def is_subtype_of(self, ingredient_type):
+        """
+        Return True if this ingredient type is a subtype of the given
+        ingredient type, False otherwise.
+        """
+        # TODO: normalize ingredient type names so this search is less brittle.
+        if self.name == ingredient_type:
+            return True
+        elif not self.supertype:
+            return False
+        else:
+            return self.supertype.is_subtype_of(ingredient_type)
+
+
 class Ingredient(Base):
     """
     Represents a single ingredient as the food item itself, not a quantity of a
@@ -416,6 +478,8 @@ class Ingredient(Base):
     __tablename__ = 'ingredients'
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)
+    ingredient_type_id = Column(Integer, ForeignKey('ingredient_types.id'))
+    ingredient_type = relationship("IngredientType", backref="ingredients")
 
     def __init__(self, name):
         self.name = name
@@ -429,6 +493,19 @@ class Ingredient(Base):
         Return the list of recipes that use this ingredient.
         """
         return [a.recipe for a in self.ingredient_associations]
+
+    def is_type_of(self, ingredient_type):
+        """
+        Return True if this ingredient is a type of ingredient_type, False
+        otherwise.
+        """
+        # TODO: normalize ingredient type names so this search is less brittle.
+        if not self.ingredient_type:
+            return False
+        if self.ingredient_type.name == ingredient_type:
+            return True
+        else:
+            return self.ingredient_type.is_subtype_of(ingredient_type)
 
 
 class Cuisine(Base):
