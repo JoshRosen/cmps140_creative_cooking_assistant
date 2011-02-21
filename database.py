@@ -255,6 +255,15 @@ class Database(object):
             name = normalize_ingredient_name(name)
             query = query.filter_by(name=name)
         return query
+        
+    def get_categories(self, name=None):
+        """
+        Get categories matching the given criteria.
+        """
+        query =  self._session.query(Category)
+        if name != None:
+            query = query.filter_by(name=name)
+        return query
 
 
 class RecipeIngredientAssociation(Base):
