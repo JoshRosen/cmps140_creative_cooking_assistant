@@ -74,7 +74,8 @@ You can construct some very complicated queries:
 
 >>> recipes = db.get_recipes(include_ingredients=['bacon', 'chocolate'],
 ...     exclude_ingredients=['blueberries'], prep_time=5, cook_time=(None, 20),
-...     total_time=(10, 30), num_steps=(3, None), num_ingredients=6)
+...     total_time=(10, 30), num_steps=(3, None), num_ingredients=6,
+...     include_cuisines=['Italian'], exclude_cuisines=['Indian'])
 
 For the full details on the search capabilities, see the documentation for the
 get_recipes() method.
@@ -88,14 +89,16 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import deferred, relationship, sessionmaker, join
 
 from nlu import extract_ingredient_parts, normalize_ingredient_name
+from nltk import word_tokenize
+from RecipeCategorizer import get_cuisine
 
 
 Base = declarative_base()
 
 
-recipe_categories = Table('recipe_categories', Base.metadata,
+recipe_cuisines = Table('recipe_cuisines', Base.metadata,
     Column('recipe_id', Integer, ForeignKey('recipes.id')),
-    Column('category_id', Integer, ForeignKey('categories.id'))
+    Column('cuisines_id', Integer, ForeignKey('cuisines.id'))
 )
 
 
@@ -189,10 +192,20 @@ class Database(object):
         # headings like "CRUST: " from contributing to the ingredient count.
         recipe.num_ingredients = len(recipe.ingredients)
 
+        # Add cuisines
+        for cuisine_name in recipe._determine_cuisines():
+            cuisine = self.get_cuisines(name=cuisine_name).first()
+            if not cuisine:
+                cuisine = Cuisine(cuisine_name)
+                self._session.add(cuisine)
+                self._session.flush()
+            recipe.cuisines.append(cuisine)
+
         self._session.add(recipe)
         self._session.commit()
 
     def get_recipes(self, include_ingredients=(), exclude_ingredients=(),
+                    include_cuisines=(), exclude_cuisines=(),
                     prep_time=None, cook_time=None, total_time=None,
                     num_steps=None, num_ingredients=None):
         """
@@ -212,6 +225,9 @@ class Database(object):
 
         To find recipes that have exactly 5 steps:
         >>> recipes = db.get_recipes(num_steps=5)
+
+        To find Italian recipes:
+        >>> recipes = db.get_recipes(include_cuisines=["Italian"])
         """
         # Normalize ingredient names, so that they match the names stored in
         # the database.
@@ -230,6 +246,16 @@ class Database(object):
                 query = query.filter(Ingredient.name == ingredient_name)
             for ingredient_name in exclude_ingredients:
                 query = query.filter(Ingredient.name != ingredient_name)
+        # Handle cuisine inclusion and exclusion:
+        # TODO: cuisine names should probably be normalized before querying, so
+        # lowercase 'italian' matches 'Italian'.
+        if include_cuisines or exclude_cuisines:
+            for cuisine_name in include_cuisines:
+                query = query.filter(Recipe.cuisines.any(
+                    Cuisine.name == cuisine_name))
+            for cuisine_name in exclude_cuisines:
+                query = query.filter(Recipe.cuisines.any(
+                    Cuisine.name != cuisine_name))
         # Handle ranges searches over simple numeric attributes, like
         # total_time or num_steps
         if total_time != None:
@@ -253,6 +279,15 @@ class Database(object):
         query =  self._session.query(Ingredient)
         if name != None:
             name = normalize_ingredient_name(name)
+            query = query.filter_by(name=name)
+        return query
+
+    def get_cuisines(self, name=None):
+        """
+        Get cuisines matching the given criteria.
+        """
+        query =  self._session.query(Cuisine)
+        if name != None:
             query = query.filter_by(name=name)
         return query
 
@@ -303,8 +338,8 @@ class Recipe(Base):
     author = deferred(Column(String), group='recipe_text')
     description = deferred(Column(String), group='recipe_text')
     ingredients = relationship(RecipeIngredientAssociation)
-    categories = relationship('Category', secondary=recipe_categories,
-                               backref='recipes')
+    cuisines = relationship('Cuisine', secondary=recipe_cuisines,
+                            backref='recipes')
     num_steps = Column(Integer)
     num_ingredients = Column(Integer)
     ingredients_text = deferred(Column(String), group='recipe_text')
@@ -319,6 +354,28 @@ class Recipe(Base):
 
     def __repr__(self):
         return "<Recipe(%s)>" % self.title
+
+    def _determine_cuisines(self):
+        """
+        Determine the cuisines for this recipe.  This is a private method used
+        during recipe import.
+        """
+        # For now, store only the top cuisine (or multiple cuisines in the
+        # event of a tie).  A more robust approach would store cuisines whose
+        # scores are in some top percentile.
+        cuisine_criteria = set(w for w in word_tokenize(self.description))
+        cuisine_criteria.union(set(w for w in word_tokenize(self.title)))
+        for ingredient_assoc in self.ingredients:
+            cuisine_criteria.add(ingredient_assoc.ingredient.name)
+        cuisine_scores = get_cuisine(cuisine_criteria)
+        if not cuisine_scores:
+            return []
+        max_score = max(cuisine_scores.values())
+        result = []
+        for cuisine in cuisine_scores.keys():
+            if cuisine_scores[cuisine] == max_score:
+                result.append(cuisine)
+        return result
 
 
 class Ingredient(Base):
@@ -338,12 +395,11 @@ class Ingredient(Base):
         return "<Ingredient(%s)>" % self.name
 
 
-class Category(Base):
+class Cuisine(Base):
     """
-    Represents a category that a recipe can belong to, like Breakfast or
-    Indian.
+    Represents a cuisine, such as "Indian" or "Italian".
     """
-    __tablename__ = 'categories'
+    __tablename__ = 'cuisines'
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)
 
@@ -351,7 +407,7 @@ class Category(Base):
         self.name = name
 
     def __repr__(self):
-        return "<Category(%s)>" % self.name
+        return "<Cuisine(%s)>" % self.name
 
 
 class DatabaseException(Exception):
