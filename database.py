@@ -88,14 +88,15 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import deferred, relationship, sessionmaker, join
 
 from nlu import extract_ingredient_parts, normalize_ingredient_name
+from RecipeCategorizer import get_cuisine
 
 
 Base = declarative_base()
 
 
-recipe_categories = Table('recipe_categories', Base.metadata,
+recipe_cuisines = Table('recipe_cuisines', Base.metadata,
     Column('recipe_id', Integer, ForeignKey('recipes.id')),
-    Column('category_id', Integer, ForeignKey('categories.id'))
+    Column('cuisines_id', Integer, ForeignKey('cuisines.id'))
 )
 
 
@@ -188,6 +189,8 @@ class Database(object):
         # The count is set after processing the ingredient string to prevent
         # headings like "CRUST: " from contributing to the ingredient count.
         recipe.num_ingredients = len(recipe.ingredients)
+
+        # Determine the cuisines for the recipe:
 
         self._session.add(recipe)
         self._session.commit()
@@ -303,8 +306,8 @@ class Recipe(Base):
     author = deferred(Column(String), group='recipe_text')
     description = deferred(Column(String), group='recipe_text')
     ingredients = relationship(RecipeIngredientAssociation)
-    categories = relationship('Category', secondary=recipe_categories,
-                               backref='recipes')
+    cuisines = relationship('Cuisine', secondary=recipe_cuisines,
+                            backref='recipes')
     num_steps = Column(Integer)
     num_ingredients = Column(Integer)
     ingredients_text = deferred(Column(String), group='recipe_text')
@@ -338,12 +341,11 @@ class Ingredient(Base):
         return "<Ingredient(%s)>" % self.name
 
 
-class Category(Base):
+class Cuisine(Base):
     """
-    Represents a category that a recipe can belong to, like Breakfast or
-    Indian.
+    Represents a cuisine, such as "Indian" or "Italian".
     """
-    __tablename__ = 'categories'
+    __tablename__ = 'cuisines'
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)
 
@@ -351,7 +353,7 @@ class Category(Base):
         self.name = name
 
     def __repr__(self):
-        return "<Category(%s)>" % self.name
+        return "<Cuisine(%s)>" % self.name
 
 
 class DatabaseException(Exception):
