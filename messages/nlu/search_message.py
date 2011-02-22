@@ -53,7 +53,7 @@ def get_cuisines(tokenized_string, enum=True):
     """
     
     stemmed_string = utils.stem_words(tokenized_string)
-    cuisines = set.difference(wordlists.categories, wordlists.meal_types)
+    cuisines = set.difference(wordlists.categories, wordlists.categories)
     stemmed_cuisines = utils.stem_words(cuisines)
     return _extract_words_from_list(stemmed_cuisines, stemmed_string, enum)
 
@@ -67,23 +67,6 @@ def _extract_words_from_list(word_list, string_list, enum=True):
                 yield (i, word)
             else:
                 yield word
-
-class GenericFrame:
-    def __init__(self, id, name, prefference=0, relationship='and', descriptor=None):
-        self.id = id
-        self.name = name
-        self.prefference = prefference
-        self.relationship = relationship
-        self.descriptor = descriptor
-
-class IngredientFrame(GenericFrame):
-    pass
-
-class MealFrame(GenericFrame):
-    pass
-
-class CuisineFrame(GenericFrame):
-    pass
 
 class SearchMessage(ParsedInputMessage):
     """
@@ -103,11 +86,30 @@ class SearchMessage(ParsedInputMessage):
     keywords = ['desire.v.01', 'like.v.05', 'need.n.02', 'looking.n.02',
                 'search.v.02', 'want.v.03', 'want.v.04', 'create.v.05']
     
+    class GenericFrame:
+        def __init__(self, id, name, prefference=0, relationship='and', descriptor=None):
+            self.id = id
+            self.name = name
+            self.prefference = prefference
+            self.relationship = relationship
+            self.descriptor = descriptor
+            
+        def __repr__(self):
+            return '<%s: name=\'%s\', id=\'%i\' ...>' % (self.__class__.__name__, self.name, self.id)
+
+    class IngredientFrame(GenericFrame):
+        pass
+
+    class MealFrame(GenericFrame):
+        pass
+
+    class CuisineFrame(GenericFrame):
+        pass
+    
     def _parse(self, raw_input_string):
         """
         Fills out message meta and frame attributes
         """
-        
         tokenizer = nltk.WordPunctTokenizer()
         tokenized_string = tokenizer.tokenize(raw_input_string)
         tagger = utils.combined_taggers
@@ -116,7 +118,8 @@ class SearchMessage(ParsedInputMessage):
         # Ingredients
         for i, stem_ingredient in get_ingredients(tokenized_string):
             ingredient = tokenized_string[i]
-            self.frame['ingredient'].append(IngredientFrame(
+            print "found ingredient ", ingredient
+            self.frame['ingredient'].append(self.IngredientFrame(
                                             id = i,
                                             name = ingredient,
                                             descriptor = [], # siblings JJ
@@ -126,7 +129,8 @@ class SearchMessage(ParsedInputMessage):
         # Meals
         for i, stem_meal in get_meals(tokenized_string):
             meal = tokenized_string[i]
-            self.frame['meal'].append(MealFrame(
+            print "found meal ", meal
+            self.frame['meal'].append(self.MealFrame(
                                             id = i,
                                             name = meal,
                                             descriptor = [], # siblings JJ
@@ -134,15 +138,18 @@ class SearchMessage(ParsedInputMessage):
                                             relationship = 'and', #TODO: Implement
                                             ))
         # Cuisine
-        for i, stem_meal in get_cuisines(tokenized_string):
+        for i, stem_cuisine in get_cuisines(tokenized_string):
             cuisine = tokenized_string[i]
-            self.frame['cuisine'].append(CuisineFrame(
+            print "found cuisine ", cuisine
+            self.frame['cuisine'].append(self.CuisineFrame(
                                             id = i,
                                             name = cuisine,
                                             descriptor = [], # siblings JJ
                                             prefference = 0, # RB = not or n't
                                             relationship = 'and', #TODO: Implement
                                             ))
+        # Dish
+        # TODO: Get the subject of the sentence (aka what the verb is reffering to)
         
         
         
@@ -167,6 +174,3 @@ class SearchMessage(ParsedInputMessage):
             return (1-(float(bestDistance)/minDistance)) * .5 + .5
         else:
             return 0.0
-            
-    def __repr__(self):
-        return '<%s: frame:%s>' % (self.__class__.__name__, self.frame)

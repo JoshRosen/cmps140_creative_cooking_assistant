@@ -6,12 +6,20 @@ import utils
 
 class YesNoMessage(ParsedInputMessage):
     """
+    >>> YesNoMessage.confidence("Hmmm... No thanks.")
+    1.0
     >>> YesNoMessage("Hmmm... No thanks.")
     <YesNoMessage: frame:{'decision': <DecisionFrame: decision='no', id='2' ...>}>
+    >>> YesNoMessage.confidence("Ok")
+    1.0
     >>> YesNoMessage("Ok")
     <YesNoMessage: frame:{'decision': <DecisionFrame: decision='yes', id='0' ...>}>
+    >>> YesNoMessage.confidence("Sounds good")
+    1.0
     >>> YesNoMessage("Sounds good")
     <YesNoMessage: frame:{'decision': <DecisionFrame: decision='yes', id='1' ...>}>
+    >>> YesNoMessage.confidence("I like turtles?")
+    0.0
     >>> YesNoMessage("I like turtles?")
     <YesNoMessage: frame:{'decision': []}>
     """
@@ -20,7 +28,7 @@ class YesNoMessage(ParsedInputMessage):
     yes_keywords = ['yes.n.01','okay.r.01', 'alright.s.01', 'very_well.r.02',
                     'good.n.03']
     no_keywords = ['no.n.01' ]
-    keywords = yes_keywords + no_keywords
+    minDistance = 3
     
     class DecisionFrame:
         def __init__(self, id, word, decision):
@@ -30,10 +38,7 @@ class YesNoMessage(ParsedInputMessage):
         
         def __repr__(self):
             return '<%s: decision=\'%s\', id=\'%i\' ...>' % (self.__class__.__name__, self.decision, self.id)
-    
-    def __init__(self, raw_input_string):
-        super(self)(raw_input_string)
-        self.minDistance = 3
+        
     
     def _parse(self, raw_input_string):
         tokenizer = nltk.WordPunctTokenizer()
@@ -80,7 +85,6 @@ class YesNoMessage(ParsedInputMessage):
     def confidence(raw_input_string):
         tokenizer = nltk.WordPunctTokenizer()
         tokenized_string = tokenizer.tokenize(raw_input_string)
-        minDistance = 3
         
         yesDistanceSet = utils.min_synset_distance_in_sentence(
                             YesNoMessage.yes_keywords,
@@ -90,14 +94,14 @@ class YesNoMessage(ParsedInputMessage):
                             tokenized_string)
                             
         # check minDistance
-        if yesDistanceSet and yesDistanceSet[1] <= self.minDistance:
+        if yesDistanceSet and yesDistanceSet[1] <= YesNoMessage.minDistance:
             return 1.0
         else:
             yesDistanceSet = None
-        if noDistanceSet and noDistanceSet[1] <= self.minDistance:
+        if noDistanceSet and noDistanceSet[1] <= YesNoMessage.minDistance:
             return 1.0
         else:
             noDistanceSet = None
-        if yesDistance == None and noDistance == None:
+        if yesDistanceSet == None and noDistanceSet == None:
             return 0.0
             
