@@ -77,6 +77,20 @@ You can construct some very complicated queries:
 ...     total_time=(10, 30), num_steps=(3, None), num_ingredients=6,
 ...     include_cuisines=['Italian'], exclude_cuisines=['Indian'])
 
+In many cases, you'll want to incrementally refine queries.  You can specify
+your search criteria as a dictionary, then use the special **expression call
+syntax (http://docs.python.org/reference/expressions.html#calls):
+
+>>> search_criteria = {
+... 'include_ingredients': ['peanut butter'],
+... 'exclude_ingredients': ['chicken'],
+... 'num_ingredients': 3
+... }
+
+>>> recipes = db.get_recipes(**search_criteria)
+>>> recipes[0].title
+'Peanut butter and jelly sandwich'
+
 For the full details on the search capabilities, see the documentation for the
 get_recipes() method.
 """
