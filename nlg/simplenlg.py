@@ -1,6 +1,14 @@
 """
-Python interface to SimpleNLG.  You can access static methods and classes
-through the gateway.jvm object, or you can add a line like
+Python interface to SimpleNLG 3.8.  This uses version 3.8 because it's a stable
+version of SimpleNLG with good documentation.
+
+For SimpleNLG documentation, you can browse the SimpleNLG Java API at
+    http://www.csd.abdn.ac.uk/~ereiter/simplenlg/api-v3/
+or read the tutorial in the SimpleNLG 3.8 download at
+    http://www.csd.abdn.ac.uk/~ereiter/simplenlg/simplenlg-v38.zip
+
+You can access static methods and classes through the gateway.jvm object, or
+you can add a line like
 
     NPPhraseSpec = gateway.jvm.NPPhraseSpec
 

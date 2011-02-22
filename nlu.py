@@ -62,7 +62,7 @@ def normalize_ingredient_name(ingredient_name):
     >>> normalize_ingredient_name('bing cherries')
     'bing cherry'
     """
-    words = ingredient_name.strip().split()
+    words = ingredient_name.lower().strip().split()
     return ' '.join(LEMMATIZER.lemmatize(w) for w in words)
 
 
