@@ -53,7 +53,7 @@ def get_cuisines(tokenized_string, enum=True):
     """
     
     stemmed_string = utils.stem_words(tokenized_string)
-    cuisines = set.difference(wordlists.categories, wordlists.categories)
+    cuisines = set.difference(wordlists.cuisines, wordlists.meal_types)
     stemmed_cuisines = utils.stem_words(cuisines)
     return _extract_words_from_list(stemmed_cuisines, stemmed_string, enum)
 
