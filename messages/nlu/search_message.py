@@ -105,6 +105,9 @@ class SearchMessage(ParsedInputMessage):
 
     class CuisineFrame(GenericFrame):
         pass
+        
+    class DishFrame(GenericFrame):
+        pass
     
     def _parse(self, raw_input_string):
         """
@@ -118,7 +121,6 @@ class SearchMessage(ParsedInputMessage):
         # Ingredients
         for i, stem_ingredient in get_ingredients(tokenized_string):
             ingredient = tokenized_string[i]
-            print "found ingredient ", ingredient
             self.frame['ingredient'].append(self.IngredientFrame(
                                             id = i,
                                             name = ingredient,
@@ -129,7 +131,6 @@ class SearchMessage(ParsedInputMessage):
         # Meals
         for i, stem_meal in get_meals(tokenized_string):
             meal = tokenized_string[i]
-            print "found meal ", meal
             self.frame['meal'].append(self.MealFrame(
                                             id = i,
                                             name = meal,
@@ -140,7 +141,6 @@ class SearchMessage(ParsedInputMessage):
         # Cuisine
         for i, stem_cuisine in get_cuisines(tokenized_string):
             cuisine = tokenized_string[i]
-            print "found cuisine ", cuisine
             self.frame['cuisine'].append(self.CuisineFrame(
                                             id = i,
                                             name = cuisine,
@@ -151,7 +151,18 @@ class SearchMessage(ParsedInputMessage):
         # Dish
         # TODO: Get the subject of the sentence (aka what the verb is reffering to)
         
-        
+        dishesSet = [(i, w[0]) for i,w in enumerate(tagged_string) if w[1]=='NN' and
+                              w[0] not in self.frame['ingredient'] and
+                              w[0] not in self.frame['meal']]
+        for i, stem_dish in dishesSet:
+            dish = tokenized_string[i]
+            self.frame['dish'].append(self.DishFrame(
+                                                id = i,
+                                                name = dish,
+                                                descriptor = [], # siblings JJ
+                                                prefference = 0, # RB = not or n't
+                                                relationship = 'and', #TODO: Implement
+                                                ))
         
     @staticmethod
     def confidence(raw_input_string):
