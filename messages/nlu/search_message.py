@@ -14,14 +14,17 @@ def get_ingredients(tokenized_string, enum=True):
     >>> tokenizer = nltk.WordPunctTokenizer()
     >>> tokenized_string = tokenizer.tokenize(raw_input_string)
     >>> for i,w in get_ingredients(tokenized_string): print i,w
-    2 appl
+    2 apples
     4 cinnamon
-    7 pep
+    7 pepper
     """
     
     stemmed_string = utils.stem_words(tokenized_string)
     stemmed_ingredients = utils.stem_words(wordlists.ingredients)
-    return _extract_words_from_list(stemmed_ingredients, stemmed_string, enum)
+    results = _extract_words_from_list(stemmed_ingredients,
+                                       stemmed_string,
+                                       enum)
+    return [(i, tokenized_string[i]) for i, w in results]
     
 def get_meals(tokenized_string, enum=True):
     """
@@ -33,12 +36,13 @@ def get_meals(tokenized_string, enum=True):
     >>> tokenized_string = tokenizer.tokenize(raw_input_string)
     >>> for i,w in get_meals(tokenized_string): print i,w
     4 breakfast
-    8 din
+    8 dinner
     """
     
     stemmed_string = utils.stem_words(tokenized_string)
     stemmed_meals = utils.stem_words(wordlists.meal_types)
-    return _extract_words_from_list(stemmed_meals, stemmed_string, enum)
+    results = _extract_words_from_list(stemmed_meals, stemmed_string, enum)
+    return [(i, tokenized_string[i]) for i, w in results]
     
 def get_cuisines(tokenized_string, enum=True):
     """
@@ -55,10 +59,13 @@ def get_cuisines(tokenized_string, enum=True):
     stemmed_string = utils.stem_words(tokenized_string)
     cuisines = set.difference(wordlists.cuisines, wordlists.meal_types)
     stemmed_cuisines = utils.stem_words(cuisines)
-    return _extract_words_from_list(stemmed_cuisines, stemmed_string, enum)
+    results = _extract_words_from_list(stemmed_cuisines, stemmed_string, enum)
+    return [(i, tokenized_string[i]) for i, w in results]
 
 def _extract_words_from_list(word_list, string_list, enum=True):
     """
+    Returns (index, word) or a list of words for words which occur in both
+    lists.
     """
     
     for i, word in enumerate(string_list):
