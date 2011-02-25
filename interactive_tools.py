@@ -1,6 +1,7 @@
 """
 A set of useful tools for the exploration of nltk.
 """
+from nltk.corpus import wordnet
 
 #- Synsets ---------------------------------------------------------------------
 

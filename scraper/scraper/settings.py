@@ -19,6 +19,6 @@ DEFAULT_ITEM_CLASS = 'scraper.items.ScraperItem'
 USER_AGENT = '%s/%s' % (BOT_NAME, BOT_VERSION)
 
 ITEM_PIPELINES = ['scraper.pipelines.DropPipeline',
-                  'scraper.pipelines.SanitizePipeline',
+                  #'scraper.pipelines.SanitizePipeline',
                   'scraper.pipelines.ExportPipeline',
                  ]
