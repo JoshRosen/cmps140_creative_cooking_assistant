@@ -6,6 +6,7 @@ For a demo, run this program and point your browser to
 http://localhost:8080
 """
 
+import os
 import logging
 import uuid
 import urlparse
@@ -68,7 +69,8 @@ class WebChatServer(object):
             self._save_chatbot(chatbot, session_id)
             # Return HTML of chat interface
             start_response('200 OK', [('content-type', 'text/html')])
-            template = open('chat_interface.html').read()
+            template = open(os.path.join(os.path.dirname(__file__),
+                'chat_interface.html')).read()
             template = template.replace("{{SESSION_ID}}", session_id)
             template = template.replace("{{OUTPUT}}", greeting)
             return (template, )

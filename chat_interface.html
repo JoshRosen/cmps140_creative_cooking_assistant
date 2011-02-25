@@ -22,7 +22,7 @@ $(document).ready(function() {
                 'User:</span> ' + chat_message.val() + '</li>');
             $.ajax({
                 type: "POST",
-                url: '/',
+                url: '',
                 data: ({session_id : session_id,
                         chat_message : chat_message.val()}),
                 dataType: 'text',
