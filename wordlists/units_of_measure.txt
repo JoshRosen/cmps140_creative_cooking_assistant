@@ -21,3 +21,5 @@ cube
 square
 sheet
 ounce
+pound
+loaf
