@@ -17,7 +17,7 @@ import os
 import random
 import sys
 
-from nlu import time_to_minutes
+from nlu.recipes import time_to_minutes
 from database import Database, DuplicateRecipeException
 
 SITEMAP_XML_NAMESPACE = "{http://www.sitemaps.org/schemas/sitemap/0.9}"

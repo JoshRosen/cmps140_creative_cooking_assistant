@@ -1,6 +1,6 @@
 from collections import defaultdict
 from wordlists import list_of_adjectivals
-from nlu import normalize_ingredient_name
+from nlu.recipes import normalize_ingredient_name
 from ingredient_cuisine_mapping import ingredient_cuisine_mapping
 
 

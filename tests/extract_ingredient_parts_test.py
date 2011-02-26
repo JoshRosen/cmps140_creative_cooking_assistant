@@ -6,7 +6,7 @@ TODO: Before we submit the project code, bundle a csv file with this code.
 """
 import urllib2
 import csv
-from nlu import extract_ingredient_parts
+from nlu.recipes import extract_ingredient_parts
 
 
 TESTDATA_URL = "https://spreadsheets.google.com/pub?hl=en&hl=en&key=0AvQ9-2eaIan0dHF5QXloVU54SEppamloR2tmRFZlbXc&output=csv"

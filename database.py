@@ -103,7 +103,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import deferred, relationship, sessionmaker, join
 from sqlalchemy.interfaces import PoolListener
 
-from nlu import extract_ingredient_parts, normalize_ingredient_name
+from nlu.recipes import extract_ingredient_parts, normalize_ingredient_name
 from nltk import word_tokenize
 from RecipeCategorizer import get_cuisine
 
