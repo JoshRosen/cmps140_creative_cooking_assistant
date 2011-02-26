@@ -36,3 +36,6 @@ cooked
 chopped
 baby
 ground
+hot
+dried
+cubed

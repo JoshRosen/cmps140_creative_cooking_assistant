@@ -45,7 +45,7 @@ class ParsedInputMessage(Message):
         Message.__init__(self)
         self.raw_input_string = raw_input_string
         self.meta['confidence'] = ParsedInputMessage.confidence(raw_input_string)
-        self.frame = dict(zip(self.frame_keys, repeat([])))
+        self.frame = dict([(key, []) for key in self.frame_keys])
         self._parse(raw_input_string)
 
     def _parse(self, raw_input_string):
@@ -61,6 +61,9 @@ class ParsedInputMessage(Message):
         message type.
         """
         return 0.0
+        
+    def __repr__(self):
+        return '<%s: frame:%s>' % (self.__class__.__name__, self.frame)
 
 
 class ContentPlanMessage(Message):

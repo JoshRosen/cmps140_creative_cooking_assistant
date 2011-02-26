@@ -49,13 +49,13 @@ a list of RecipeIngredientAssociation objects.  Each object represents a line
 containing an ingredient in the recipe.
 
 >>> recipes[0].ingredients[0].ingredient.name
-u'peanut butter'
+'peanut butter'
 >>> recipes[0].ingredients[0].unit
-u'cup'
+'cup'
 >>> recipes[0].ingredients[0].quantity
-u'1'
+'1'
 >>> recipes[0].ingredients[2].modifiers
-u'sliced'
+'sliced'
 
 The RecipeIngredientAssociation objects can be printed:
 
@@ -77,6 +77,20 @@ You can construct some very complicated queries:
 ...     total_time=(10, 30), num_steps=(3, None), num_ingredients=6,
 ...     include_cuisines=['Italian'], exclude_cuisines=['Indian'])
 
+In many cases, you'll want to incrementally refine queries.  You can specify
+your search criteria as a dictionary, then use the special **expression call
+syntax (http://docs.python.org/reference/expressions.html#calls):
+
+>>> search_criteria = {
+... 'include_ingredients': ['peanut butter'],
+... 'exclude_ingredients': ['chicken'],
+... 'num_ingredients': 3
+... }
+
+>>> recipes = db.get_recipes(**search_criteria)
+>>> recipes[0].title
+'Peanut butter and jelly sandwich'
+
 For the full details on the search capabilities, see the documentation for the
 get_recipes() method.
 """
@@ -87,6 +101,7 @@ from sqlalchemy import create_engine, Table, Column, Integer, \
 from sqlalchemy.sql.expression import between
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import deferred, relationship, sessionmaker, join
+from sqlalchemy.interfaces import PoolListener
 
 from nlu import extract_ingredient_parts, normalize_ingredient_name
 from nltk import word_tokenize
@@ -115,7 +130,13 @@ class Database(object):
         http://www.sqlalchemy.org/docs/core/engines.html#database-urls
         """
         self._database_url = database_url
-        self._engine = create_engine(self._database_url)
+        # See http://groups.google.com/group/sqlalchemy/browse_thread/thread/430371a20fd69468
+        class SetTextFactory(PoolListener):
+            def connect(self, dbapi_con, con_record):
+                dbapi_con.text_factory = \
+                    lambda x: x.decode('ascii', 'ignore').encode()
+        self._engine = create_engine(self._database_url,
+            listeners=[SetTextFactory()])
         self._sessionmaker = sessionmaker(bind=self._engine)
         self._session = self._sessionmaker()
         self.create_database_schema()
@@ -232,9 +253,9 @@ class Database(object):
         # Normalize ingredient names, so that they match the names stored in
         # the database.
         include_ingredients = \
-            (normalize_ingredient_name(i) for i in include_ingredients)
+            [normalize_ingredient_name(i) for i in include_ingredients]
         exclude_ingredients = \
-            (normalize_ingredient_name(i) for i in exclude_ingredients)
+            [normalize_ingredient_name(i) for i in exclude_ingredients]
         # Construct the query
         query = self._session.query(Recipe)
         # Handle ingredient inclusion and exclusion
