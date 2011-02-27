@@ -158,3 +158,9 @@ class NLG(object):
         realiser = Realiser()
         output = realiser.realiseDocument(utterance).strip()
         print output
+
+class NLGException(Exception):
+    """
+    Base class for throwing exceptions related to the NLG
+    """
+    pass
