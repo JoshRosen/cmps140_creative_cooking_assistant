@@ -5,7 +5,7 @@ from nltk.corpus import wordnet
 import utils
 import wordlists
 
-def get_ingredients(tokenized_string, enum=True):
+def get_ingredients(tokenized_string, enum=False):
     """
     Returns a tuple of (index, ingredient) or a list of ingredients from a
     tokenized string.
@@ -13,7 +13,7 @@ def get_ingredients(tokenized_string, enum=True):
     >>> raw_input_string = "I like apples, cinnamon, and pepper."
     >>> tokenizer = nltk.WordPunctTokenizer()
     >>> tokenized_string = tokenizer.tokenize(raw_input_string)
-    >>> for i,w in get_ingredients(tokenized_string): print i,w
+    >>> for i,w in get_ingredients(tokenized_string, enum=True): print i,w
     2 apples
     4 cinnamon
     7 pepper
@@ -23,10 +23,14 @@ def get_ingredients(tokenized_string, enum=True):
     stemmed_ingredients = utils.stem_words(wordlists.ingredients)
     results = _extract_words_from_list(stemmed_ingredients,
                                        stemmed_string,
-                                       enum)
-    return [(i, tokenized_string[i]) for i, w in results]
+                                       True)
+    if enum:
+        return [(i, tokenized_string[i]) for i, w in results]
+    else:
+        return [tokenized_string[i] for i, w in results]
     
-def get_meals(tokenized_string, enum=True):
+    
+def get_meals(tokenized_string, enum=False):
     """
     Returns a tuple of (index, meal) or a list of meals from a
     tokenized string.
@@ -34,35 +38,42 @@ def get_meals(tokenized_string, enum=True):
     >>> raw_input_string = "I want cats for breakfast and dogs for dinner."
     >>> tokenizer = nltk.WordPunctTokenizer()
     >>> tokenized_string = tokenizer.tokenize(raw_input_string)
-    >>> for i,w in get_meals(tokenized_string): print i,w
+    >>> for i,w in get_meals(tokenized_string, enum=True): print i,w
     4 breakfast
     8 dinner
     """
     
     stemmed_string = utils.stem_words(tokenized_string)
     stemmed_meals = utils.stem_words(wordlists.meal_types)
-    results = _extract_words_from_list(stemmed_meals, stemmed_string, enum)
-    return [(i, tokenized_string[i]) for i, w in results]
+    results = _extract_words_from_list(stemmed_meals, stemmed_string, True)
+    if enum:
+        return [(i, tokenized_string[i]) for i, w in results]
+    else:
+        return [tokenized_string[i] for i, w in results]
     
-def get_cuisines(tokenized_string, enum=True):
+def get_cuisines(tokenized_string, enum=False):
     """
     Returns a tuple of (index, cuisine) or a list of cuisines from a
     tokenized string.
     
-    #>>> raw_input_string = "I want a chinese or mexican dish."
-    #>>> tokenizer = nltk.WordPunctTokenizer()
-    #>>> tokenized_string = tokenizer.tokenize(raw_input_string)
-    #>>> for i,w in get_cuisines(tokenized_string): print i,w
-    #TODO: Implement doctest
+    >>> raw_input_string = "I want a chinese or mexican dish."
+    >>> tokenizer = nltk.WordPunctTokenizer()
+    >>> tokenized_string = tokenizer.tokenize(raw_input_string)
+    >>> for i,w in get_cuisines(tokenized_string, enum=True): print i,w
+    3 chinese
+    5 mexican
     """
     
     stemmed_string = utils.stem_words(tokenized_string)
     cuisines = set.difference(wordlists.cuisines, wordlists.meal_types)
     stemmed_cuisines = utils.stem_words(cuisines)
-    results = _extract_words_from_list(stemmed_cuisines, stemmed_string, enum)
-    return [(i, tokenized_string[i]) for i, w in results]
+    results = _extract_words_from_list(stemmed_cuisines, stemmed_string, True)
+    if enum:
+        return [(i, tokenized_string[i]) for i, w in results]
+    else:
+        return [tokenized_string[i] for i, w in results]
 
-def _extract_words_from_list(word_list, string_list, enum=True):
+def _extract_words_from_list(word_list, string_list, enum=False):
     """
     Returns (index, word) or a list of words for words which occur in both
     lists.
@@ -126,33 +137,31 @@ class SearchMessage(ParsedInputMessage):
         tagged_string = tagger.tag(tokenized_string)
         
         # Ingredients
-        for i, stem_ingredient in get_ingredients(tokenized_string):
-            ingredient = tokenized_string[i]
+        for i, ingredient in get_ingredients(tokenized_string, enum=True):
             self.frame['ingredient'].append(self.IngredientFrame(
                                             id = i,
                                             name = ingredient,
-                                            descriptor = [], # siblings JJ
-                                            prefference = 0, # RB = not or n't
+                                            descriptor = [], # TODO: siblings JJ
+                                            prefference = 0, # TODO: RB = not or n't
                                             relationship = 'and', #TODO: Implement
                                             ))
         # Meals
-        for i, stem_meal in get_meals(tokenized_string):
+        for i, meal in get_meals(tokenized_string, enum=True):
             meal = tokenized_string[i]
             self.frame['meal'].append(self.MealFrame(
                                             id = i,
                                             name = meal,
-                                            descriptor = [], # siblings JJ
-                                            prefference = 0, # RB = not or n't
+                                            descriptor = [], # TODO: siblings JJ
+                                            prefference = 0, # TODO: RB = not or n't
                                             relationship = 'and', #TODO: Implement
                                             ))
         # Cuisine
-        for i, stem_cuisine in get_cuisines(tokenized_string):
-            cuisine = tokenized_string[i]
+        for i, cuisine in get_cuisines(tokenized_string, enum=True):
             self.frame['cuisine'].append(self.CuisineFrame(
                                             id = i,
                                             name = cuisine,
-                                            descriptor = [], # siblings JJ
-                                            prefference = 0, # RB = not or n't
+                                            descriptor = [], # TODO: siblings JJ
+                                            prefference = 0, # TODO: RB = not or n't
                                             relationship = 'and', #TODO: Implement
                                             ))
         # Dish
@@ -161,13 +170,12 @@ class SearchMessage(ParsedInputMessage):
         dishesSet = [(i, w[0]) for i,w in enumerate(tagged_string) if w[1]=='NN' and
                               w[0] not in self.frame['ingredient'] and
                               w[0] not in self.frame['meal']]
-        for i, stem_dish in dishesSet:
-            dish = tokenized_string[i]
+        for i, dish in dishesSet:
             self.frame['dish'].append(self.DishFrame(
                                                 id = i,
                                                 name = dish,
-                                                descriptor = [], # siblings JJ
-                                                prefference = 0, # RB = not or n't
+                                                descriptor = [], # TODO: siblings JJ
+                                                prefference = 0, # TODO: RB = not or n't
                                                 relationship = 'and', #TODO: Implement
                                                 ))
         
