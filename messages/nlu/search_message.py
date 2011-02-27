@@ -88,13 +88,37 @@ def _extract_words_from_list(word_list, string_list, enum=False):
 
 class SearchMessage(ParsedInputMessage):
     """
-    >>> SearchMessage.confidence('I like apples and fish.')
+    >>> # Test Confidence
+    >>> SearchMessage.confidence('I like apples and carrots.')
     1.0
-    >>> SearchMessage.confidence('I am looking for a dish with spicy sausage.')
+    >>> SearchMessage.confidence('I am looking for a breakfast dish.')
     1.0
     >>> SearchMessage.confidence('What can I make with bricks?')
     1.0
-    >>> sm = SearchMessage('I like apples and fish.')
+    
+    >>> # Test _parse
+    >>> sm = SearchMessage('I like apples and carrots.')
+    >>> for ingredient in sm.frame['ingredient']: print ingredient.name
+    apples
+    carrots
+    >>> sm.frame['meal']
+    []
+    >>> sm.frame['cuisine']
+    []
+    >>> sm = SearchMessage('I am looking for a breakfast dish.')
+    >>> for meal in sm.frame['meal']: print meal.name
+    breakfast
+    >>> sm.frame['ingredient']
+    []
+    >>> sm.frame['cuisine']
+    []
+    >>> sm = SearchMessage('What are some turkish breakfast recipes?')
+    >>> for cuisine in sm.frame['cuisine']: print cuisine.name
+    turkish
+    >>> for meal in sm.frame['meal']: print meal.name
+    breakfast
+    >>> sm.frame['ingredient']
+    []
     """
     # attributes in the frame
     #frame_keys = ['ingredientients', 'cost', 'callories', 'time_total', 'time_prep',
