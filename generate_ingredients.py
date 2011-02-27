@@ -22,7 +22,7 @@ def _sanitize_name(name):
 
 
 def main():
-    db = Database("sqlite:///database.sqlite")
+    db = Database("sqlite:///test_database.sqlite")
     names = set([_sanitize_name(i.name) for i in db.get_ingredients()])
     ingredients_file = open('wordlists/ingredients.txt', 'w')
     for name in names:

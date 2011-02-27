@@ -1,17 +1,24 @@
 import nltk
 from nltk.corpus import wordnet
 
-def stem_words(words, stemmer=nltk.LancasterStemmer()):
+def stem_words(words, stemmer=nltk.PorterStemmer(), lcase=True):
     """
     returns a stemmed list of words
     """
-    return [stemmer.stem(word) for word in words]
+    word_stems = []
+    for word in words:
+        if lcase:
+            word = stemmer.stem(word).lower()
+        else:
+            word = stemmer.stem(word)
+        word_stems.append(word)
+    return  word_stems
     
 def min_synset_distance_in_sentence(synset_strings, tokenized_string):
     """
     Finds the closests distance of synsets from synset_strings compared to
-    any token in tokenized_string. A tuple of ((token, index), distance) is returned
-    if a result is found, otherwise None is returned.
+    any token in tokenized_string. A tuple of ((token, index), distance) is
+    returned if a result is found, otherwise None is returned.
     """
     minDistanceSet = None
     for synset_string in synset_strings:
