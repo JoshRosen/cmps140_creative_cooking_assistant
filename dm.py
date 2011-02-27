@@ -52,7 +52,7 @@ class DialogueManager(object):
         # Currently this does not take advantage of message types
         
         if self.current_state == 'wait_for_user_name':
-            self.user_name = parsed_input[0].raw_input_string
+            self.user_name = parsed_input[0]['raw_input_string']
             self.current_state = 'echo_user_input'
             content_plan = ContentPlanMessage("greet_user_by_name")
             content_plan.frame['user_name'] = self.user_name
@@ -64,5 +64,5 @@ class DialogueManager(object):
             else:
                 content_plan = ContentPlanMessage("echo_user_input")
                 content_plan.frame['last_user_input'] = \
-                    parsed_input[0].raw_input_string
+                    parsed_input[0]['raw_input_string']
                 return content_plan

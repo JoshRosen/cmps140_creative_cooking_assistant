@@ -1,11 +1,31 @@
+"""
+Miscellaneous utility functions.
+"""
 import nltk
+import copy
 from nltk.corpus import wordnet
+
+
+def dict_remove_empty(dictionary):
+    """
+    Given a dictionary, return a new dictionary without values that evaluate to
+    None.
+
+    >>> dict_remove_empty({'a': 'a', 'b': [], 'c': False})
+    {'a': 'a', 'c': False}
+    """
+    result = copy.copy(dictionary)
+    for key in result.keys():
+        if not result[key] and result[key] != False:
+            del result[key]
+    return result
 
 def stem_words(words, stemmer=nltk.LancasterStemmer()):
     """
     returns a stemmed list of words
     """
     return [stemmer.stem(word) for word in words]
+
     
 def min_synset_distance_in_sentence(synset_strings, tokenized_string):
     """
@@ -24,7 +44,6 @@ def min_synset_distance_in_sentence(synset_strings, tokenized_string):
                    distance < minDistanceSet[1]):
                     minDistanceSet = ((token, i), distance)
     return minDistanceSet
-    
     
     
 def combine_backoff_taggers( taggers, traningData ):

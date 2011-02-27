@@ -5,9 +5,8 @@ import code
 import logging
 from nlg import NaturalLanguageGenerator
 from nlu import NaturalLanguageUnderstander
-from messages.nlu import *
+from nlu.messages import yes_no_message, recipe_search_message
 from dm import DialogueManager
-from data_structures import ParsedInputMessage
 
 # Monkey-patch the Python 2.7 logger.getChild() method into the logger class,
 # to maintain backwards-compatibility with Python 2.6.
@@ -50,8 +49,8 @@ class Chatbot(object):
         self.last_bot_output = ""
 
         # Register the NLU messages we want
-        self.nlu.register_message(YesNoMessage)
-        self.nlu.register_message(SearchMessage)
+        self.nlu.register_message(yes_no_message)
+        self.nlu.register_message(recipe_search_message)
 
     def __getstate__(self):
         # When pickling this object, don't pickle the logger object; store its
