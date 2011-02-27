@@ -66,6 +66,18 @@ def normalize_ingredient_name(ingredient_name):
     return ' '.join(LEMMATIZER.lemmatize(w) for w in words)
 
 
+def tokenize_group_parens(input_string):
+    """
+    Tokenize the input string while treating text in parentheses as a single
+    token.
+
+    >>> tokenize_group_parens("1 (12 ounce) package")
+    ['1', '(12 ounce)', 'package']
+    """
+    regexp = r"\([^)]+\)|[a-zA-Z0-9_,.-]+"
+    return re.findall(regexp, input_string)
+
+
 def extract_ingredient_parts(ingredient_string):
     """
     Extracts the unit, quantity, base ingredient, and modifiers from an item in
@@ -85,22 +97,29 @@ def extract_ingredient_parts(ingredient_string):
     {'base_ingredient': 'olive oil', 'unit': 'tbsp', 'quantity': '1 1/2'}
     >>> extract_ingredient_parts('1 (12 ounce) package tofu')
     {'base_ingredient': 'tofu', 'unit': '(12 ounce) package', 'quantity': '1'}
+
+    Modifiers that appear after ingredients:
+
+    >>> extract_ingredient_parts('apple, cored, peeled')
+    {'base_ingredient': 'apple', 'modifiers': 'cored, peeled'}
+
+    TODO: handle separators like ' - ' and parentheses.
+
+    Invalid ingredient strings:
+
+    >>> extract_ingredient_parts('1 1/2') == None
+    True
     """
     parts = {}
     ingredient_string = ingredient_string.strip()
     tokens = []
-    # For tokenization, consider anything in parentheses to be a single
-    # token.
-    tokenize_keep_parens = r"\([^)]+\)|[a-zA-Z0-9_,.-]+"
 
-    # Handle units and quantaties, if they are present:
+    # Handle units and quantities, if they are present:
     # Extract the quantity using a regular expression (to handle '1 1/2')
     match = re.match(r"^([0-9/ -]+)(.*)$", ingredient_string)
     if match:
         parts['quantity'] = match.group(1).strip()
-        tokens = re.findall(tokenize_keep_parens, match.group(2))
-        if not tokens:
-            return None
+        tokens = tokenize_group_parens(match.group(2))
         # Extract unit of measurement.  In cases like '1 (12 ounce) package',
         # '(12 ounce) package' is the unit of measurement.
         # TODO: Perhaps the unit of measurement should be normalized.
@@ -111,9 +130,7 @@ def extract_ingredient_parts(ingredient_string):
         if unit_tokens:
             parts['unit'] = ' '.join(unit_tokens)
     else:
-        tokens = re.findall(tokenize_keep_parens, ingredient_string)
-    if not tokens:
-        return None
+        tokens = tokenize_group_parens(ingredient_string)
 
     # Hopefully, the remaining tokens describe the ingredient.  There may be
     # modifiers, like 'grated cheese'.  To extract the base ingredient, use
@@ -121,12 +138,31 @@ def extract_ingredient_parts(ingredient_string):
     modifier_tokens = []
     while tokens and is_food_adjective(tokens[0].strip(',')):
         modifier_tokens.append(tokens.pop(0))
-    if modifier_tokens:
-        parts['modifiers'] = ' '.join(modifier_tokens)
-    if not tokens:
+    remainder = ' '.join(tokens)
+    # If we've gotten this far and run out of tokens, then the ingredient
+    # string is not well-formed.
+    if not remainder:
         return None
-    # TODO: Handle modifiers that appear after the base ingredient
-    parts['base_ingredient'] = normalize_ingredient_name(' '.join(tokens))
+    # To deal with modifiers that appear AFTER the base ingredient, assume that
+    # they are preceded by a comma.
+    if ',' not in remainder:
+        # No modifiers after base ingredient
+        parts['base_ingredient'] = normalize_ingredient_name(remainder)
+        parts['modifiers'] = ' '.join(modifier_tokens)
+    else:
+        # Modifiers after base ingredient
+        (base_ingredient, post_modifiers) = remainder.split(',', 1)
+        post_modifiers = post_modifiers.strip()
+        if post_modifiers and not modifier_tokens:
+            parts['modifiers'] = post_modifiers
+        else:
+            # If we have modifiers before and after the ingredient, separate
+            # them with a comma.
+            parts['modifiers'] = ', '.join([' '.join(modifier_tokens),
+                post_modifiers])
+        parts['base_ingredient'] = normalize_ingredient_name(base_ingredient)
+    if not parts['modifiers']:
+        del parts['modifiers']
     return parts
 
 
