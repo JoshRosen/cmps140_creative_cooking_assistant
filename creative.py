@@ -150,12 +150,16 @@ class CreativeManager(object):
     plan - that will provide creative recipes.
     """
 
-    def __init__(self, db, logger):
+    def __init__(self, db, logger, nlu, nlg, dm):
         """
-        Create a new DialogueMgr.
+        Create a new Creative Manager, it allows using standard nlu, nlg, and dm
+        or bypassing them.  For now we are using the same one.
         """
         self.db = db
         self.log = logger
+        self.nlu = nlu
+        self.nlg = nlg
+        self.dm = dm
         self.current_state = None
         self.user_name = None
 
@@ -225,3 +229,17 @@ class CreativeManager(object):
             return template % content_plan.frame['user_name']
         else:
             return "I didn't understand what you just said."
+
+    def respond(self, user_input):
+            ##########################################################
+            # for now we test this with the regular nlu, dm, and nlg
+            # which have been passed. Later we will try experimental versions.
+            ##########################################################
+            self.log.debug('%12s = "%s"' % ('user_input', user_input))
+            parsed_input = self.nlu.parse_input(user_input) 
+            self.log.debug('%12s = "%s"' % ('parsed_input', parsed_input))
+            content_plan = self.dm.plan_response(parsed_input) 
+            self.log.debug('%12s = "%s"' % ('content_plan', content_plan))
+            bot_response = self.nlg.generate_response(content_plan) 
+            return('CR:' + bot_response)
+
