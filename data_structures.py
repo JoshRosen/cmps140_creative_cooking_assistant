@@ -35,6 +35,7 @@ class ParsedInputMessage(Message):
     meta = {
             'mood':None, # Or some sensible default.
             'confidence':-1.0,
+            'sentence': {'type':None, 'word':None}
             }
             
     def __init__(self, raw_input_string):
