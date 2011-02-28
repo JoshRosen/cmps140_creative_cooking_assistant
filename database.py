@@ -91,6 +91,11 @@ syntax (http://docs.python.org/reference/expressions.html#calls):
 >>> recipes[0].title
 'Peanut butter and jelly sandwich'
 
+Given the ingredient object, you can also find which recipes use it:
+
+>>> db.get_ingredients('bread').first().recipes[0].title
+'Peanut butter and jelly sandwich'
+
 For the full details on the search capabilities, see the documentation for the
 get_recipes() method.
 """
@@ -297,7 +302,7 @@ class Database(object):
         """
         Get ingredients matching the given criteria.
         """
-        query =  self._session.query(Ingredient)
+        query = self._session.query(Ingredient)
         if name != None:
             name = normalize_ingredient_name(name)
             query = query.filter_by(name=name)
@@ -307,7 +312,7 @@ class Database(object):
         """
         Get cuisines matching the given criteria.
         """
-        query =  self._session.query(Cuisine)
+        query = self._session.query(Cuisine)
         if name != None:
             query = query.filter_by(name=name)
         return query
@@ -326,7 +331,7 @@ class RecipeIngredientAssociation(Base):
     recipe_id = Column(Integer, ForeignKey('recipes.id'))
     recipe = relationship("Recipe")
     ingredient_id = Column(Integer, ForeignKey('ingredients.id'))
-    ingredient = relationship("Ingredient")
+    ingredient = relationship("Ingredient", backref="ingredient_associations")
     quantity = Column(String)
     unit = Column(String)
     modifiers = Column(String)
@@ -414,6 +419,13 @@ class Ingredient(Base):
 
     def __repr__(self):
         return "<Ingredient(%s)>" % self.name
+
+    @property
+    def recipes(self):
+        """
+        Return the list of recipes that use this ingredient.
+        """
+        return [a.recipe for a in self.ingredient_associations]
 
 
 class Cuisine(Base):
