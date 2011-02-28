@@ -98,7 +98,7 @@ class SearchMessage(ParsedInputMessage):
     
     >>> # Test _parse
     >>> sm = SearchMessage('I like apples and carrots.')
-    >>> for ingredient in sm.frame['ingredient']: print ingredient.name
+    >>> for ingredient in sm.frame['ingredient']: print ingredient['name']
     apples
     carrots
     >>> sm.frame['meal']
@@ -106,16 +106,16 @@ class SearchMessage(ParsedInputMessage):
     >>> sm.frame['cuisine']
     []
     >>> sm = SearchMessage('I am looking for a breakfast dish.')
-    >>> for meal in sm.frame['meal']: print meal.name
+    >>> for meal in sm.frame['meal']: print meal['name']
     breakfast
     >>> sm.frame['ingredient']
     []
     >>> sm.frame['cuisine']
     []
     >>> sm = SearchMessage('What are some turkish breakfast recipes?')
-    >>> for cuisine in sm.frame['cuisine']: print cuisine.name
+    >>> for cuisine in sm.frame['cuisine']: print cuisine['name']
     turkish
-    >>> for meal in sm.frame['meal']: print meal.name
+    >>> for meal in sm.frame['meal']: print meal['name']
     breakfast
     >>> sm.frame['ingredient']
     []
@@ -128,29 +128,6 @@ class SearchMessage(ParsedInputMessage):
     keywords = ['desire.v.01', 'like.v.05', 'need.n.02', 'looking.n.02',
                 'search.v.02', 'want.v.03', 'want.v.04', 'create.v.05']
     
-    class GenericFrame:
-        def __init__(self, id, name, prefference=0, relationship='and', descriptor=None):
-            self.id = id
-            self.name = name
-            self.prefference = prefference
-            self.relationship = relationship
-            self.descriptor = descriptor
-            
-        def __repr__(self):
-            return '<%s: name=\'%s\', id=\'%i\' ...>' % (self.__class__.__name__, self.name, self.id)
-
-    class IngredientFrame(GenericFrame):
-        pass
-
-    class MealFrame(GenericFrame):
-        pass
-
-    class CuisineFrame(GenericFrame):
-        pass
-        
-    class DishFrame(GenericFrame):
-        pass
-    
     def _parse(self, raw_input_string):
         """
         Fills out message meta and frame attributes
@@ -162,32 +139,29 @@ class SearchMessage(ParsedInputMessage):
         
         # Ingredients
         for i, ingredient in get_ingredients(tokenized_string, enum=True):
-            self.frame['ingredient'].append(self.IngredientFrame(
-                                            id = i,
-                                            name = ingredient,
-                                            descriptor = [], # TODO: siblings JJ
-                                            prefference = 0, # TODO: RB = not or n't
-                                            relationship = 'and', #TODO: Implement
-                                            ))
+            self.frame['ingredient'].append({'id': i,
+                                             'name': ingredient,
+                                             'descriptor': [], # TODO: siblings JJ
+                                             'prefference': 0, # TODO: RB = not or n't
+                                             'relationship': 'and', #TODO: Implement
+                                             })
         # Meals
         for i, meal in get_meals(tokenized_string, enum=True):
             meal = tokenized_string[i]
-            self.frame['meal'].append(self.MealFrame(
-                                            id = i,
-                                            name = meal,
-                                            descriptor = [], # TODO: siblings JJ
-                                            prefference = 0, # TODO: RB = not or n't
-                                            relationship = 'and', #TODO: Implement
-                                            ))
+            self.frame['meal'].append({'id': i,
+                                       'name': meal,
+                                       'descriptor': [], # TODO: siblings JJ
+                                       'prefference': 0, # TODO: RB = not or n't
+                                       'relationship': 'and', #TODO: Implement
+                                       })
         # Cuisine
         for i, cuisine in get_cuisines(tokenized_string, enum=True):
-            self.frame['cuisine'].append(self.CuisineFrame(
-                                            id = i,
-                                            name = cuisine,
-                                            descriptor = [], # TODO: siblings JJ
-                                            prefference = 0, # TODO: RB = not or n't
-                                            relationship = 'and', #TODO: Implement
-                                            ))
+            self.frame['cuisine'].append({'id': i,
+                                          'name': cuisine,
+                                          'descriptor': [], # TODO: siblings JJ
+                                          'prefference': 0, # TODO: RB = not or n't
+                                          'relationship': 'and', #TODO: Implement
+                                         })
         # Dish
         # TODO: Get the subject of the sentence (aka what the verb is reffering to)
         
@@ -195,13 +169,12 @@ class SearchMessage(ParsedInputMessage):
                               w[0] not in self.frame['ingredient'] and
                               w[0] not in self.frame['meal']]
         for i, dish in dishesSet:
-            self.frame['dish'].append(self.DishFrame(
-                                                id = i,
-                                                name = dish,
-                                                descriptor = [], # TODO: siblings JJ
-                                                prefference = 0, # TODO: RB = not or n't
-                                                relationship = 'and', #TODO: Implement
-                                                ))
+            self.frame['dish'].append({'id': i,
+                                       'name': dish,
+                                       'descriptor': [], # TODO: siblings JJ
+                                       'prefference': 0, # TODO: RB = not or n't
+                                       'relationship': 'and', #TODO: Implement
+                                       })
         
     @staticmethod
     def confidence(raw_input_string):
