@@ -5,7 +5,7 @@ import code
 import logging
 from nlg import NaturalLanguageGenerator
 from nlu import NaturalLanguageUnderstander
-from messages.nlu import *
+from nlu.messages import *
 from dm import DialogueManager
 from data_structures import ParsedInputMessage
 
