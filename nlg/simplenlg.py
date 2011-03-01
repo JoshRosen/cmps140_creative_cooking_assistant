@@ -43,6 +43,7 @@ java_import(gateway.jvm, "simplenlg.realiser.*")
 NPPhraseSpec = gateway.jvm.NPPhraseSpec
 PPPhraseSpec = gateway.jvm.PPPhraseSpec
 SPhraseSpec = gateway.jvm.SPhraseSpec
+InterrogativeType = gateway.jvm.InterrogativeType
 Realiser = gateway.jvm.Realiser
 
 

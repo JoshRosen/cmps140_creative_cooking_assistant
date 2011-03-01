@@ -1,30 +1,50 @@
-import atexit
 import os
-from subprocess import Popen, PIPE
-from py4j.java_gateway import JavaGateway, GatewayClient, java_import
-from simplenlg import NPPhraseSpec, PPPhraseSpec, SPhraseSpec, Realiser, gateway
+import random
+from simplenlg import NPPhraseSpec, PPPhraseSpec, SPhraseSpec, Realiser, gateway, InterrogativeType
 
 class NLG(object):
 
     def __init__(self):
+        """
+        Creates a new Natural Lanaguage Generator.
+        
+        conf_responses: a list of preconfigured templates to express 
+                        acknowledgement of input or action
+        aff_responses: a list of preconfigured templates to express 
+                       affirmation or to say 'yes'
+        neg_responses: a list of preconfigured templates to express
+                       decline of request or action or to say 'no'
+        """
 
-        """
-        Create a new Natural Lanaguage Generator
-        """
+        self.conf_responses = ['You got it',
+                              'As you wish',
+                              'You don\'t have to ask me twice',
+                              'Of course',
+                              'Okay',
+                              'Acknowledged']
+ 
+        self.aff_responses = ['Yes',
+                              'Yeah',
+                              'Very much so',
+                              'Affirmative']
+
+        self.neg_responses = ['No',
+                              'Nah',
+                              'Negative',
+                              'I\'m afraid not']
 
         self.words = {'name':'Jeraziah',
                       'subject':'you', 
                       'verb':'prefer', 
                       'object':'recipes',
                       'preposition':'that contains',
-                      'objmodifiers':['Thai']
+                      'objmodifiers':['Thai'],
                       'prepmodifiers':['potatoes','celery','carrots'],
                       'adverbs':['confidently'],
                       'lastinput':'Sing me a song.'}
         print 'nlg creation successful'
 
     def test(self):
-
         """
         A test of the SimpleNLG server.
         Constructs the following sentence:
@@ -45,7 +65,7 @@ class NLG(object):
         prep.addComplement("eggs")
         recipe_type.addModifier(prep)
 
-        phrase.setInterrogative(gateway.jvm.InterrogativeType.YES_NO)
+        phrase.setInterrogative(InterrogativeType.YES_NO)
         phrase.setSubject("you")
         phrase.setVerb("want")
         phrase.addComplement(recipe_type)
@@ -60,17 +80,21 @@ class NLG(object):
         Receives a Recipe object and displays its contents to the user.
         """
 
+        ptime_str = "Prep Time: %i minutes" % (recipe.prep_time)
+        ctime_str = "Cook Time: %i minutes" % (recipe.cook_time)
+        ttime_str = "Total Time: %i minutes" % (recipe.total_time)
+        cuisines_str = 'Cuisines: ' + ', '.join(recipe.cuisines)
+
         print 'Here is the recipe you requested:'
         print recipe.title
         print recipe.author
         print recipe.description
-        print recipe.ingredients
-        print recipe.cuisines
         print recipe.ingredients_text
+        print recipe.cuisines_str
         print recipe.servings
-        print recipe.prep_time
-        print recipe.cook_time
-        print recipe.total_time
+        print recipe.ptime_str
+        print recipe.ctime_str
+        print recipe.ttime_str
 
     def generate(self, utter_type, keywords):
 
@@ -85,34 +109,31 @@ class NLG(object):
         prepositional phrase can be specified.
 
         Example: 
-        words = {'subject':'you', 
-                 'verb':'prefer', 
-                 'object':'recipes',
-                 'preposition':'that contains',
-                 'objmodifiers':['Thai']
-                 'prepmodifiers':['potatoes','celery','carrots'],
-                 'adverbs':['confidently'],
-        
-        generate('yes_no', words) will produce:
-        "Do you prefer Thai recipes that contains potatoes, celery,
-         and carrots?"
 
-        generate('how', words) will produce:
-        "How do you prefer Thai recipes that contains potatoes, celery,
-         and carrots?"
+        >>> nlg = NLG()
+        >>> words = {'subject':'you', 
+        ...         'verb':'prefer', 
+        ...         'object':'recipes',
+        ...         'preposition':'that contains',
+        ...         'objmodifiers':['Thai']
+        ...         'prepmodifiers':['potatoes','celery','carrots'],
+        ...         'adverbs':['confidently'],
+        >>> nlg.generate('yes_no', words)
+        'Do you confidently prefer Thai recipes that contains potatoes, celery and carrots?'
+        >>> nlg.generate('how', words)
+        'How do you confidently prefer Thai recipes that contains potatoes, celery and carrots?'
         """
 
         if utter_type.lower() == 'greet':
             if 'name' in keywords:
-                print 'Hello, %s!' % (keywords['name'])
+                return'Hello, %s!' % (keywords['name'])
             else:
-                print 'Hello there!'
+                return 'Hello there!'
             return
 
         if utter_type.lower() == 'echo':
             if 'lastinput' in keywords:
-                print keywords['lastinput']
-            return
+                return keywords['lastinput']
 
         utterance = SPhraseSpec()
         subject = NPPhraseSpec(keywords['subject'])
@@ -135,20 +156,26 @@ class NLG(object):
                 target.addModifier(modifier)
 
         if utter_type.lower() == 'yes_no':
-            utterance.setInterrogative(gateway.jvm.InterrogativeType.YES_NO)
+            utterance.setInterrogative(InterrogativeType.YES_NO)
         elif utter_type.lower() == 'how':
-            utterance.setInterrogative(gateway.jvm.InterrogativeType.HOW)
+            utterance.setInterrogative(InterrogativeType.HOW)
         elif utter_type.lower() == 'what':
-            utterance.setInterrogative(gateway.jvm.InterrogativeType.WHAT)
+            utterance.setInterrogative(InterrogativeType.WHAT)
         elif utter_type.lower() == 'where':
-            utterance.setInterrogative(gateway.jvm.InterrogativeType.WHERE)
+            utterance.setInterrogative(InterrogativeType.WHERE)
         elif utter_type.lower() == 'who':
-            utterance.setInterrogative(gateway.jvm.InterrogativeType.WHO)
+            utterance.setInterrogative(InterrogativeType.WHO)
         elif utter_type.lower() == 'why':
-            utterance.setInterrogative(gateway.jvm.InterrogativeType.WHY)
+            utterance.setInterrogative(InterrogativeType.WHY)
+        elif utter_type.lower() == 'confirm':
+            return self.acknowledge(keywords)
+        elif utter_type.lower() == 'affirm':
+            return self.affirm(keywords)
+        elif utter_type.lower() == 'decline':
+            return self.decline(keywords)
 
         target.addModifier(preposition)
-        utterance.setSubject(subject)
+        utterance.setSubject(keywords['subject'])
         utterance.setVerb(keywords['verb'])
         if 'adverbs' in keywords:
             for modifier in keywords['adverbs']:
@@ -157,10 +184,53 @@ class NLG(object):
         
         realiser = Realiser()
         output = realiser.realiseDocument(utterance).strip()
-        print output
+        return output
+
+    def acknowledge(self, keywords):
+        """
+        Returns an utterance of acknowledgement at random.
+        A template is picked randomly from preconfigured choices.
+        Then, the choice of adding the user's name is randomly determined.
+        Finally, either a period or exclamation mark is used to end the
+        sentence.
+        """
+
+        acknowledgement = random.choice(self.conf_responses)
+        if 'name' in keywords:
+            acknowledgement += random.choice([', ' + keywords['name'], ''])
+        return acknowledgement + random.choice(['.', '!'])
+
+    def affirm(self, keywords):
+        """
+        Returns an utterance of affirmation at random.
+        A template is picked randomly from preconfigured choices.
+        Then, the choice of adding the user's name is randomly determined.
+        Finally, either a period or exclamation mark is used to end the
+        sentence.
+        """
+
+        affirmation = random.choice(self.aff_responses)
+        if 'name' in keywords:
+            affirmation += random.choice([', ' + keywords['name'], ''])
+        return affirmation + random.choice(['.', '!'])
+
+    def decline(self, keywords):
+        """
+        Returns an utterance of denial or decline of action.
+        A template is picked randomly from preconfigured choices.
+        Then, the choice of adding the user's name is randomly determined.
+        Finally, either a period or exclamation mark is used to end the
+        sentence.
+        """
+
+        decline = random.choice(self.neg_responses)
+        if 'name' in keywords:
+            decline += random.choice([', ' + keywords['name'], ''])
+        return decline + random.choice(['.', '!'])
 
 class NLGException(Exception):
     """
     Base class for throwing exceptions related to the NLG
     """
+
     pass
