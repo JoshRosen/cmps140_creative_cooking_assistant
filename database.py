@@ -267,11 +267,14 @@ class Database(object):
         if include_ingredients or exclude_ingredients:
             double_join = join(RecipeIngredientAssociation, Recipe)
             triple_join = join(double_join, Ingredient)
-            query = query.select_from(triple_join)
+            join_query = query.select_from(triple_join)
+            query = join_query
             for ingredient_name in include_ingredients:
-                query = query.filter(Ingredient.name == ingredient_name)
+                query = query.intersect(
+                    join_query.filter(Ingredient.name == ingredient_name))
             for ingredient_name in exclude_ingredients:
-                query = query.filter(Ingredient.name != ingredient_name)
+                query = query.except_(
+                    join_query.filter(Ingredient.name == ingredient_name))
         # Handle cuisine inclusion and exclusion:
         # TODO: cuisine names should probably be normalized before querying, so
         # lowercase 'italian' matches 'Italian'.
