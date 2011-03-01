@@ -44,7 +44,7 @@ class Chatbot(object):
         self.db = db
         self.log = logger
         self.nlg = NaturalLanguageGenerator(logger.getChild('nlg'))
-        self.nlu = NaturalLanguageUnderstander(0.0, logger.getChild('nlu'))
+        self.nlu = NaturalLanguageUnderstander(0.5, logger.getChild('nlu'))
         self.dm = DialogueManager(db, logger.getChild('dm'))
         self.log.debug("Chatbot instantiated")
         self.last_bot_output = ""
