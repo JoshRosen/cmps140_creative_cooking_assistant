@@ -10,21 +10,29 @@ class YesNoMessage(ParsedInputMessage):
     1.0
     >>> ynm = YesNoMessage("Hmmm... No thanks.")
     >>> ynm.frame['decision']
-    {'decision': 'no', 'word': 'No', 'id': 2}
+    {'decision': False, 'word': 'No', 'id': 2}
+    >>> ynm.getDecision()
+    False
     >>> YesNoMessage.confidence("Ok")
     1.0
     >>> ynm = YesNoMessage("Ok")
     >>> ynm.frame['decision']
-    {'decision': 'yes', 'word': 'Ok', 'id': 0}
+    {'decision': True, 'word': 'Ok', 'id': 0}
+    >>> ynm.getDecision()
+    True
     >>> YesNoMessage.confidence("Sounds good")
     1.0
     >>> ynm = YesNoMessage("Sounds good")
     >>> ynm.frame['decision']
-    {'decision': 'yes', 'word': 'good', 'id': 1}
+    {'decision': True, 'word': 'good', 'id': 1}
+    >>> ynm.getDecision()
+    True
     >>> YesNoMessage.confidence("I like turtles?")
     0.0
     >>> ynm = YesNoMessage("I like turtles?")
     >>> ynm.frame['decision'] == None
+    True
+    >>> ynm.getDecision() == None
     True
     """
 
@@ -62,16 +70,22 @@ class YesNoMessage(ParsedInputMessage):
         if yesDistanceSet and noDistanceSet == None:
             self.frame['decision'] = {'id': yesIndex,
                                       'word': yesToken,
-                                      'decision': 'yes',
+                                      'decision': True,
                                      }
         elif noDistanceSet and yesDistanceSet == None:
             self.frame['decision'] = {'id': noIndex,
                                       'word': noToken,
-                                      'decision': 'no',
+                                      'decision': False,
                                      }
         else: # conflict
             self.frame['decision'] = None
             
+      
+    def getDecision(self):
+        if self.frame['decision']:
+            return self.frame['decision']['decision']
+        else:
+            return None
             
         
     @staticmethod
