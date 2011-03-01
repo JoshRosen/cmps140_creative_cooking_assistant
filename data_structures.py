@@ -35,6 +35,7 @@ class ParsedInputMessage(Message):
     meta = {
             'mood':None, # Or some sensible default.
             'confidence':-1.0,
+            'sentence': {'type':None, 'word':None}
             }
             
     def __init__(self, raw_input_string):
@@ -44,7 +45,7 @@ class ParsedInputMessage(Message):
         """
         Message.__init__(self)
         self.raw_input_string = raw_input_string
-        self.meta['confidence'] = ParsedInputMessage.confidence(raw_input_string)
+        self.meta['confidence'] = self.confidence(raw_input_string)
         self.frame = dict([(key, []) for key in self.frame_keys])
         self._parse(raw_input_string)
 
@@ -61,6 +62,18 @@ class ParsedInputMessage(Message):
         message type.
         """
         return 0.0
+        
+    def getFrameTypes(self):
+        return self.frame.keys()
+    
+    def getFrame(self, frameType):
+        return self.frame[frameType]
+        
+    def getSentence(self):
+        return self.meta['sentence']
+        
+    def getConfidence(self):
+        return self.meta['confidence']
         
     def __repr__(self):
         return '<%s: frame:%s>' % (self.__class__.__name__, self.frame)
