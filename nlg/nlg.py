@@ -80,21 +80,24 @@ class NLG(object):
         Receives a Recipe object and displays its contents to the user.
         """
 
+        output = []
+
         ptime_str = "Prep Time: %i minutes" % (recipe.prep_time)
         ctime_str = "Cook Time: %i minutes" % (recipe.cook_time)
         ttime_str = "Total Time: %i minutes" % (recipe.total_time)
-        cuisines_str = 'Cuisines: ' + ', '.join(recipe.cuisines)
+        cuisines_str = 'Cuisines: ' + ', '.join(c.name for c in recipe.cuisines)
 
-        print 'Here is the recipe you requested:'
-        print recipe.title
-        print recipe.author
-        print recipe.description
-        print recipe.ingredients_text
-        print recipe.cuisines_str
-        print recipe.servings
-        print recipe.ptime_str
-        print recipe.ctime_str
-        print recipe.ttime_str
+        output.append('Here is the recipe you requested: \n')
+        output.append(recipe.title + ' by ' + recipe.author)
+        output.append(cuisines_str + '\n')
+        output.append(recipe.description + '\n')
+        output.append(recipe.ingredients_text + '\n')
+        output.append(recipe.servings)
+        output.append(ptime_str)
+        output.append(ctime_str)
+        output.append(ttime_str)
+
+        return '\n'.join(output)
 
     def generate(self, utter_type, keywords):
 
