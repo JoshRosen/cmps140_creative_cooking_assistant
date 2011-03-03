@@ -36,13 +36,7 @@ class NaturalLanguageGenerator(object):
         # TODO: implement
         # sentence planner
         # surface realizer
-        if content_plan.msg_type == "ask_for_name":
-            return "What's your name?"
-        elif content_plan.msg_type == "echo_user_input":
-            template = 'You said:\n    "%s"'
-            return template % content_plan.frame['last_user_input']
-        elif content_plan.msg_type == "greet_user_by_name":
-            template = "It's nice to meet you, %s."
-            return template % content_plan.frame['user_name']
+        if content_plan.msg_type == "echo":
+            return content_plan.frame['message']
         else:
             return "I didn't understand what you just said."

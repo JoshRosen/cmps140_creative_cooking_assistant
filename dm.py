@@ -3,6 +3,7 @@ Dialogue manager.
 """
 import logging
 from data_structures import ContentPlanMessage
+from nlu.messages import SearchMessage, YesNoMessage
 
 
 class DialogueManager(object):
@@ -17,6 +18,7 @@ class DialogueManager(object):
         self.db = db
         self.log = logger
         self.current_state = None
+        self.search_results = None
         self.user_name = None
 
     def __getstate__(self):
@@ -29,7 +31,7 @@ class DialogueManager(object):
     def __setstate__(self, state):
         # When unpickling this object, get a logger whose name was stored in
         # the pickle.
-        self.__dict__ = state
+        self.__dict__ = state  # pylint: disable=W0201
         self.log = logging.getLogger(self.log)
 
     def plan_response(self, parsed_input):
@@ -37,32 +39,65 @@ class DialogueManager(object):
         Given a list of parsed representations of user input, return a content
         plan representing the content to be expressed in response to the user.
         """
-        # The actual DM implementation could look something like this:
-        # submodules = [] # Every submodule (i.e. greeter, recipe searcher)
-        #                 # implements some common interface.
-        # cannidate_plans = []
-        # for module in submodules:
-        #     cannidate_plans.append(module.plan_response(parsed_input))
-        # Decide between the cannidate plans
-        # Return a plan
+        # This is a very simple, dummy dialog manager.  It's better than the
+        # "What is your name" demo that we had before.  Right now, it allows
+        # users to search for recipes and choose whether or not they want to
+        # display the titles of the recipes in the search results.  It doesn't
+        # use the NLG yet; it uses a special 'echo' message that passes strings
+        # through the NLG to the user.
 
-        # This is a simple finite state DM for demoing the chat interface.
-        # This will be replaced as soon as a real DM is written.
-        
-        # Currently this does not take advantage of message types
-        
-        if self.current_state == 'wait_for_user_name':
-            self.user_name = parsed_input[0].raw_input_string
-            self.current_state = 'echo_user_input'
-            content_plan = ContentPlanMessage("greet_user_by_name")
-            content_plan.frame['user_name'] = self.user_name
+        # If we didn't understand the user:
+        if not parsed_input:
+            content_plan = ContentPlanMessage("echo")
+            content_plan.frame['message'] = \
+                "Could you explain that again?"
             return content_plan
-        else:
-            if not self.user_name:
-                self.current_state = 'wait_for_user_name'
-                return ContentPlanMessage("ask_for_name")
-            else:
-                content_plan = ContentPlanMessage("echo_user_input")
-                content_plan.frame['last_user_input'] = \
-                    parsed_input[0].raw_input_string
+
+        # For now, take first (highest confidence) message.
+        # If the user is  searching for recipes:
+        if isinstance(parsed_input[0], SearchMessage):
+            # Construct a database query.
+            query = {}
+            query['include_ingredients'] = []
+            for ingredient_dict in parsed_input[0].frame['ingredient']:
+                query['include_ingredients'].append(ingredient_dict['name'])
+            self.log.debug('database_query = \n%s' % str(query))
+            # Check whether the query specifies no criteria:
+            if not any(query.values()):
+                content_plan = ContentPlanMessage("echo")
+                content_plan.frame['message'] = \
+                    "I didn't understand your query."
                 return content_plan
+            # Search the database and remember the search results.
+            self.search_results = self.db.get_recipes(**query)
+
+            content_plan = ContentPlanMessage("echo")
+            if not self.search_results:
+                content_plan.frame['message'] = \
+                    "I didn't find any recipes."
+            else:
+                content_plan.frame['message'] = \
+                    "I found %i recipes.  Would you like to see them?" % \
+                    len(self.search_results)
+            return content_plan
+
+        # If the user answers 'yes', show them the recipes:
+        elif isinstance(parsed_input[0], YesNoMessage) and self.search_results:
+            content_plan = ContentPlanMessage("echo")
+            if parsed_input[0].getDecision():
+                content_plan.frame['message'] = ["Okay, here are the recipes:"]
+                for recipe in self.search_results:
+                    content_plan.frame['message'].append(recipe.title)
+                content_plan.frame['message'] = \
+                    '\n'.join(content_plan.frame['message'])
+            else:
+                content_plan.frame['message'] = "Okay.  Let's restart."
+            self.search_results = None
+            return content_plan
+
+        # Handle NLU messages that we don't know how to respond to
+        else:
+            content_plan = ContentPlanMessage("echo")
+            content_plan.frame['message'] = \
+                "Ask me about recipes and ingredients!"
+            return content_plan
