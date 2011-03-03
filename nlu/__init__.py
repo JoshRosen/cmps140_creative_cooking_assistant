@@ -58,7 +58,7 @@ def normalize_ingredient_name(ingredient_name):
     """
     Normalizes an ingredient name, removing pluralization.
     >>> normalize_ingredient_name('eggs')
-    'egg'
+    'eggs'
     >>> normalize_ingredient_name('bing cherries')
     'bing cherry'
     """
@@ -89,7 +89,7 @@ def extract_ingredient_parts(ingredient_string):
     >>> extract_ingredient_parts('12 cups lettuce')
     {'base_ingredient': 'lettuce', 'unit': 'cups', 'quantity': '12'}
     >>> extract_ingredient_parts("14 large, fresh eggs")
-    {'base_ingredient': 'egg', 'modifiers': 'large, fresh', 'quantity': '14'}
+    {'base_ingredient': 'eggs', 'modifiers': 'large, fresh', 'quantity': '14'}
 
     More complex quantities:
 
@@ -202,7 +202,7 @@ class NaturalLanguageUnderstander(object):
     >>> len(message3)
     1
     >>> type(message3[0])
-    <class 'nlu.EchoMessage'>
+    <class 'nlu.__init__.EchoMessage'>
     """
 
     def __init__(self, confidenceThreshold, logger):
