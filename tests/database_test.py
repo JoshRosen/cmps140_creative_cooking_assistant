@@ -5,10 +5,12 @@ import unittest
 
 from database import Database
 
+
 class TestDatabase(unittest.TestCase):
 
     def setUp(self):
         self.db = Database("sqlite:///:memory:")
+        # Sample recipe database
         recipe_parts = {
             'title' : u"World-Famous Chocolate-Covered Bacon\u2122",
             'url' : "chocolate_bacon",
@@ -27,6 +29,15 @@ class TestDatabase(unittest.TestCase):
             'ingredients' : ['1 pie crust', '14 peaches']
         }
         self.db.add_from_recipe_parts(recipe_parts)
+
+        # Sample ontology
+        ontology_tuples = [
+            ('ingredient', 'vegetable', 'root vegetable', 'potato'),
+            ('ingredient', 'vegetable', 'root vegetable', 'yam'),
+            ('ingredient', 'fruit', 'apple')
+        ]
+        for tup in ontology_tuples:
+            self.db.add_ontology_node(tup)
 
     def test_printing_unicode_from_db(self):
         """
@@ -52,3 +63,28 @@ class TestDatabase(unittest.TestCase):
             assert 'bacon' not in ingredient_names
             assert 'apple' not in ingredient_names
         assert "Peach Pie" in (r.title for r in recipes)
+
+    def test_ontology_navigation(self):
+        """
+        Test methods for navigating the ontology.
+        """
+        # The test database should only contain 7 IngredientNodes:
+        assert self.db.get_ontology_nodes().count() == 7
+        # Test roots nodes:
+        ingredient_root = self.db.get_ontology_nodes('ingredient',
+            only_root_nodes=True).one()
+        assert ingredient_root.supertype == None
+        assert ingredient_root.is_root()
+        assert ingredient_root.is_subtype_of(ingredient_root)
+        assert ingredient_root.is_subtype_of(ingredient_root.name)
+        # Look at its subtypes:
+        ingredient_subtype_names = [s.name for s in ingredient_root.subtypes]
+        assert 'vegetable' in ingredient_subtype_names
+        assert 'fruit' in ingredient_subtype_names
+        # Test non-root nodes:
+        yam = self.db.get_ontology_nodes('yam').one()
+        assert yam.supertype.name == 'root vegetable'
+        assert not yam.is_subtype_of('fruit')
+        assert [n.name for n in yam.path_from_root] == \
+               ['ingredient', 'vegetable', 'root vegetable', 'yam']
+        assert [n.name for n in yam.siblings] == ['potato']

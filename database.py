@@ -105,6 +105,7 @@ from sqlalchemy import create_engine, Table, Column, Integer, \
 from sqlalchemy.sql.expression import between
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import deferred, relationship, sessionmaker, join, backref
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.interfaces import PoolListener
 
 from nlu import extract_ingredient_parts, normalize_ingredient_name
@@ -160,6 +161,8 @@ class Database(object):
         If necessary, creates the tables in the database.
         """
         Base.metadata.create_all(self._engine)
+
+    # Recipe- and ingredient-related methods
 
     def add_from_recipe_parts(self, recipe_parts):
         """
@@ -319,6 +322,43 @@ class Database(object):
             query = query.filter_by(name=name)
         return query
 
+    # Ontology-related methods
+
+    def add_ontology_node(self, ontology_tuple):
+        """
+        Add an ontology node from a tuple representing the path from the new
+        node to a root of a tree in the ontology.
+        """
+        root_name = ontology_tuple[0]
+        try:
+            root = self._session.query(OntologyNode).filter_by(name=root_name,
+                supertype=None).one()
+        except NoResultFound:
+            root = OntologyNode(root_name)
+            #self._session.add(OntologyNode)
+        last_node = root
+        for node_name in ontology_tuple[1:]:
+            try:
+                node = self._session.query(OntologyNode).filter_by(
+                    name=node_name, supertype=last_node).one()
+            except NoResultFound:
+                node = OntologyNode(node_name)
+                node.supertype = last_node
+            last_node = node
+        self._session.add(last_node)
+        self._session.commit()
+
+    def get_ontology_nodes(self, name=None, only_root_nodes=False):
+        """
+        Get ontology nodes matching the given criteria.
+        """
+        query = self._session.query(OntologyNode)
+        if name != None:
+            query = query.filter_by(name=name)
+        if only_root_nodes:
+            query = query.filter_by(supertype=None)
+        return query
+
 
 class RecipeIngredientAssociation(Base):
     """
@@ -406,67 +446,92 @@ class Recipe(Base):
         return result
 
 
-class IngredientType(Base):
+class OntologyNode(Base):
     """
-    Represents a type of ingredient, like meat or root vegetable.
-    Implements a taxonomy through subclass-superclass relationships.
-
-    For now, there's no function to find recipes containing ingredients that
-    are of a certain type (e.g. "Find me recipes that don't contain meat.")
-    But, you can walk from the top of a tree in the taxonomy to find all
-    ingredients of type 'meat' and simply add those to the exclude_ingredients
-    list passed to get_recipes().
+    Represents a node in a tree in the ontology.  Given an OntologyNode, you
+    can explore its relationship to other nodes in the ontology.
 
     >>> db = Database("sqlite:///:memory:")
-    >>> vegetables = IngredientType("vegetable")
-    >>> root_vegetables = IngredientType("root vegetable")
-    >>> root_vegetables.supertype = vegetables
-    >>> yam = Ingredient("yam")
-    >>> yam.ingredient_type = root_vegetables
-    >>> db._session.add(root_vegetables)
-    >>> db._session.commit()
+    >>> db.add_ontology_node(('ingredient', 'fruit', 'apple'))
+    >>> db.add_ontology_node(('ingredient', 'fruit', 'orange'))
+    >>> db.add_ontology_node(('ingredient', 'vegetable', 'potato'))
 
-    >>> yam.ingredient_type.name
-    'root vegetable'
-    >>> yam.is_type_of('vegetable')
-    True
-    >>> yam.is_type_of('fruit')
+    >>> apple = db.get_ontology_nodes('apple').one()
+    >>> apple.is_root()
     False
-
-    >>> root_vegetables.is_subtype_of('vegetable')
+    >>> [s.name for s in apple.siblings]
+    ['orange']
+    >>> apple.is_subtype_of('ingredient')
     True
-    >>> root_vegetables.is_subtype_of('root vegetable')
-    True
-    >>> root_vegetables.is_subtype_of('fruit')
+    >>> apple.is_subtype_of('vegetable')
     False
-    >>> root_vegetables.ingredients[0].name
-    'yam'
+    >>> [s.name for s in apple.path_from_root]
+    ['ingredient', 'fruit', 'apple']
     """
-    __tablename__ = 'ingredient_types'
+    __tablename__ = 'ontology_nodes'
     id = Column(Integer, primary_key=True)
+    # The name is not used as a primary_key because different nodes with the
+    # same name may belong to different trees in the ontology's forest.
+    # Two different OntologyNodes may have the same name if they differ in
+    # path_from_root.
     name = Column(String, unique=True, nullable=False)
-    supertype_id = Column(Integer, ForeignKey('ingredient_types.id'))
-    subtypes = relationship("IngredientType",
-        backref=backref('supertype', remote_side=id))
+    supertype_id = Column(Integer, ForeignKey('ontology_nodes.id'))
+    subtypes = relationship("OntologyNode", backref=backref('supertype',
+        remote_side=id))
 
     def __init__(self, name):
         self.name = name
 
     def __repr__(self):
-        return "<IngredientType(%s)>" % self.name
+        return "<OntologyNode(%s)>" % self.name
 
-    def is_subtype_of(self, ingredient_type):
+    def is_subtype_of(self, ontology_node_or_name):
         """
-        Return True if this ingredient type is a subtype of the given
-        ingredient type, False otherwise.
+        Return True if this OntologyNode is a subtype of the given ontology
+        node or an ontology node with the given name, False otherwise.
         """
         # TODO: normalize ingredient type names so this search is less brittle.
-        if self.name == ingredient_type:
-            return True
-        elif not self.supertype:
+        if isinstance(ontology_node_or_name, OntologyNode):
+            if self == ontology_node_or_name:
+                return True
+        else:
+            if self.name == ontology_node_or_name:
+                return True
+        if not self.supertype:
             return False
         else:
-            return self.supertype.is_subtype_of(ingredient_type)
+            return self.supertype.is_subtype_of(ontology_node_or_name)
+
+    def is_root(self):
+        """
+        Return True if this OntologyNode is the root of a tree in the ontology.
+        """
+        return self.supertype == None
+
+    @property
+    def path_from_root(self):
+        """
+        A list describing the path from the root of a tree in the ontology to
+        this OntologyNode.
+        """
+        path = [self]
+        node = self.supertype
+        while node:
+            path.insert(0, node)
+            node = node.supertype
+        return path
+
+    @property
+    def siblings(self):
+        """
+        An iterable that lists the siblings of this OntologyNode.  An
+        OntologyNode is not considered its own sibling.
+        """
+        supertype = self.supertype
+        if supertype:
+            return set(supertype.subtypes) - set([self])
+        else:
+            return []
 
 
 class Ingredient(Base):
@@ -478,8 +543,6 @@ class Ingredient(Base):
     __tablename__ = 'ingredients'
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)
-    ingredient_type_id = Column(Integer, ForeignKey('ingredient_types.id'))
-    ingredient_type = relationship("IngredientType", backref="ingredients")
 
     def __init__(self, name):
         self.name = name
@@ -493,19 +556,6 @@ class Ingredient(Base):
         Return the list of recipes that use this ingredient.
         """
         return [a.recipe for a in self.ingredient_associations]
-
-    def is_type_of(self, ingredient_type):
-        """
-        Return True if this ingredient is a type of ingredient_type, False
-        otherwise.
-        """
-        # TODO: normalize ingredient type names so this search is less brittle.
-        if not self.ingredient_type:
-            return False
-        if self.ingredient_type.name == ingredient_type:
-            return True
-        else:
-            return self.ingredient_type.is_subtype_of(ingredient_type)
 
 
 class Cuisine(Base):
