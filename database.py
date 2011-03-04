@@ -101,7 +101,7 @@ get_recipes() method.
 from collections import defaultdict
 
 from sqlalchemy import create_engine, Table, Column, Integer, \
-    String, ForeignKey
+    String, ForeignKey, UniqueConstraint
 from sqlalchemy.sql.expression import between
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import deferred, relationship, sessionmaker, join, backref
@@ -328,6 +328,8 @@ class Database(object):
         """
         Add an ontology node from a tuple representing the path from the new
         node to a root of a tree in the ontology.
+
+        Raises a DuplicateOntologyNodeException when adding a duplicate node.
         """
         root_name = ontology_tuple[0]
         try:
@@ -336,6 +338,7 @@ class Database(object):
         except NoResultFound:
             root = OntologyNode(root_name)
             #self._session.add(OntologyNode)
+        added_nodes = False
         last_node = root
         for node_name in ontology_tuple[1:]:
             try:
@@ -344,9 +347,14 @@ class Database(object):
             except NoResultFound:
                 node = OntologyNode(node_name)
                 node.supertype = last_node
+                added_nodes = True
             last_node = node
-        self._session.add(last_node)
-        self._session.commit()
+        if added_nodes:
+            self._session.add(last_node)
+            self._session.commit()
+        else:
+            raise DuplicateOntologyNodeException(
+                'OntologyNode %s already exists.' % str(ontology_tuple))
 
     def get_ontology_nodes(self, name=None, only_root_nodes=False):
         """
@@ -470,14 +478,18 @@ class OntologyNode(Base):
     """
     __tablename__ = 'ontology_nodes'
     id = Column(Integer, primary_key=True)
-    # The name is not used as a primary_key because different nodes with the
-    # same name may belong to different trees in the ontology's forest.
-    # Two different OntologyNodes may have the same name if they differ in
-    # path_from_root.
     name = Column(String, unique=True, nullable=False)
     supertype_id = Column(Integer, ForeignKey('ontology_nodes.id'))
     subtypes = relationship("OntologyNode", backref=backref('supertype',
         remote_side=id))
+    # Two different OntologyNodes may have the same name if they differ in
+    # path_from_root, hence these uniqueness constraints.  As a base case,
+    # root nodes must have distinct names.  Recursively, nodes with the same
+    # name are different if their supertypes are different.
+    __table_args__ = (
+        UniqueConstraint('name', 'supertype_id'),
+        {}
+    )
 
     def __init__(self, name):
         self.name = name
@@ -582,7 +594,14 @@ class DatabaseException(Exception):
 
 class DuplicateRecipeException(DatabaseException):
     """
-    Thrown when trying to insert a duplicate recipe into the database.
+    Thrown when trying to add a duplicate recipe to the database.
+    """
+    pass
+
+
+class DuplicateOntologyNodeException(DatabaseException):
+    """
+    Thrown when trying to add a duplicate ontology node to the database.
     """
     pass
 

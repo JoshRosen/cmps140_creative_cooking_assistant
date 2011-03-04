@@ -3,10 +3,11 @@ Tests for the database.  Run with py.test.
 """
 import unittest
 
-from database import Database
+from database import Database, DuplicateRecipeException, \
+    DuplicateOntologyNodeException
 
 
-class TestDatabase(unittest.TestCase):
+class TestDatabaseQueries(unittest.TestCase):
 
     def setUp(self):
         self.db = Database("sqlite:///:memory:")
@@ -88,3 +89,28 @@ class TestDatabase(unittest.TestCase):
         assert [n.name for n in yam.path_from_root] == \
                ['ingredient', 'vegetable', 'root vegetable', 'yam']
         assert [n.name for n in yam.siblings] == ['potato']
+
+
+class TestDatabaseExceptions(unittest.TestCase):
+
+    def test_add_duplicate_recipes(self):
+        db = Database("sqlite:///:memory:")
+        assert len(db.get_recipes()) == 0
+        db.add_from_recipe_parts({'title': 'cake', 'url': 'cake'})
+        try:
+            db.add_from_recipe_parts({'title': 'cake', 'url': 'cake'})
+            assert False  # Should have got an exception
+        except DuplicateRecipeException:
+            pass
+        assert len(db.get_recipes()) == 1
+
+    def test_add_duplicate_ontology_nodes(self):
+        db = Database("sqlite:///:memory:")
+        assert db.get_ontology_nodes().count() == 0
+        db.add_ontology_node(('dish', 'cake'))
+        try:
+            db.add_ontology_node(('dish', 'cake'))
+            assert False  # Should have got an exception
+        except DuplicateOntologyNodeException:
+            pass
+        assert db.get_ontology_nodes().count() == 2
