@@ -1,6 +1,6 @@
 test:
 	rm -f combined_taggers.pkl
-	py.test --doctest-modules
+	py.test --doctest-modules -k-scraper
 
 refresh:
 	### Download DB ###
