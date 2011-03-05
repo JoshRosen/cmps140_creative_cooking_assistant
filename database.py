@@ -478,7 +478,7 @@ class OntologyNode(Base):
     """
     __tablename__ = 'ontology_nodes'
     id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False)
+    name = Column(String, nullable=False)
     supertype_id = Column(Integer, ForeignKey('ontology_nodes.id'))
     subtypes = relationship("OntologyNode", backref=backref('supertype',
         remote_side=id))

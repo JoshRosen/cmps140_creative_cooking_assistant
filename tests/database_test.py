@@ -114,3 +114,5 @@ class TestDatabaseExceptions(unittest.TestCase):
         except DuplicateOntologyNodeException:
             pass
         assert db.get_ontology_nodes().count() == 2
+        db.add_ontology_node(('ingredient', 'cake'))
+        assert db.get_ontology_nodes().count() == 4
