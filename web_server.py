@@ -52,7 +52,7 @@ class WebChatServer(object):
         if method == 'GET':
             session_id = str(uuid.uuid4())
             # Start a new conversation
-            chatbot = Chatbot(self.db, self.logger)
+            chatbot = Chatbot(self.db, self.logger, enable_debug=False)
             greeting = chatbot.get_greeting()
             # Save the chatbot in the key-value store
             self._save_chatbot(chatbot, session_id)
