@@ -5,8 +5,6 @@ Command line interface to the chatbot.
 import logging
 
 from optparse import OptionParser
-from chatbot import Chatbot
-from database import Database
 
 PARSER = OptionParser()
 PARSER.add_option("--database", dest="database_url",
@@ -21,13 +19,17 @@ def main():
     Main loop for the command line interface.
     """
     (options, args) = PARSER.parse_args()
-    # Setup the database
-    db = Database(options.database_url)
     # Configure logging
     logging.basicConfig(filename=options.log_filename, level=logging.DEBUG,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    logger = logging.getLogger('chatbot')
+    # These imports are performed after the logging setup because basicConfig
+    # will not work if other modules call logging functions before it's called.
+    from chatbot import Chatbot
+    from database import Database
+    # Setup the database
+    db = Database(options.database_url)
     # Setup the chatbot
+    logger = logging.getLogger('chatbot')
     bot = Chatbot(db, logger)
     greeting = bot.get_greeting()
 

@@ -14,6 +14,7 @@ import glob
 import logging
 from optparse import OptionParser
 import os
+from progressbar import ProgressBar, Percentage, ETA, Bar
 import random
 import sys
 
@@ -134,6 +135,8 @@ def main():
         print "Importing up to %i recipes" % options.limit
     else:
         print "Importing up to %i recipes" % len(filenames)
+    widgets = [Percentage(), Bar(), ETA()]
+    progress_bar = ProgressBar(widgets=widgets, maxval=(options.limit)).start()
     # Import the recipes
     imported_count = 0
     for filename in filenames:
@@ -147,12 +150,14 @@ def main():
             logging.info("Imported recipe %s from %s" %
                 (recipe_parts['title'], filename))
             imported_count += 1
+            progress_bar.update(imported_count)
             if options.limit and imported_count == options.limit:
                 logging.warn("Import limit reached; exiting")
                 break
         except DuplicateRecipeException:
             logging.warn("Duplicate recipe in %s; skipping." % filename)
         recipe_file.close()
+    progress_bar.finish()
     print "Imported %i recipes." % imported_count
 
 

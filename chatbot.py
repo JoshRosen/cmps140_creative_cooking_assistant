@@ -5,7 +5,7 @@ import code
 import logging
 from nlg import NaturalLanguageGenerator
 from nlu import NaturalLanguageUnderstander
-from messages.nlu import *
+from nlu.messages import *
 from dm import DialogueManager
 from creative import CreativeManager
 from data_structures import ParsedInputMessage
@@ -50,7 +50,7 @@ class Chatbot(object):
         self.db = db
         self.log = logger
         self.nlg = NaturalLanguageGenerator(logger.getChild('nlg'))
-        self.nlu = NaturalLanguageUnderstander(0.0, logger.getChild('nlu'))
+        self.nlu = NaturalLanguageUnderstander(0.5, logger.getChild('nlu'))
         self.dm = DialogueManager(db, logger.getChild('dm'))
         #
         self.creative_nlp = CreativeManager(db, logger.getChild('creative'), self.nlu, self.nlg, self.dm)
