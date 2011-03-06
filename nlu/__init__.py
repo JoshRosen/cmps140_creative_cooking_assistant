@@ -203,7 +203,7 @@ class NaturalLanguageUnderstander(object):
     >>> len(message3)
     1
     >>> type(message3[0])
-    <class 'nlu.__init__.EchoMessage'>
+    <class 'nlu.EchoMessage'>
     """
 
     def __init__(self, confidenceThreshold, logger):
