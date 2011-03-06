@@ -58,8 +58,11 @@ class DialogueManager(object):
             # Construct a database query.
             query = {}
             query['include_ingredients'] = []
+            query['include_cuisines'] = []
             for ingredient_dict in parsed_input[0].frame['ingredient']:
                 query['include_ingredients'].append(ingredient_dict['name'])
+            for cuisine_dict in parsed_input[0].frame['cuisine']:
+                query['include_cuisines'].append(cuisine_dict['name'])
             self.log.debug('database_query = \n%s' % str(query))
             # Check whether the query specifies no criteria:
             if not any(query.values()):
