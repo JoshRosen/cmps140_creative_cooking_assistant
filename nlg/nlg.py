@@ -47,12 +47,27 @@ class NLG(object):
                       'objmodifiers':['Thai'],
                       'prepmodifiers':['potatoes','celery','carrots'],
                       'adverbs':['confidently'],
-                      'lastinput':'Sing me a song.'}
+                      'lastinput':'Sing me a song.',
+                      'clarify_cat':'meat',
+                      'clarify_list':['chicken', 'beef', 'pork']}
 
         self.query = {'include_ingredients':['chicken', 'pineapple', 'pepper'],
                       'exclude_ingredients':['dishwashing soap', 'salt'],
                       'include_cuisines':['Mexican', 'Chinese', 'Thai']}
 
+        self.tone = 'normal'
+
+        self.cruel_words = {'names':['maggot', 'little snot', 'jerk',
+                                     'weakling'],
+                            'adjectives':['incompetent', 'worthless', 
+                                          'useless']}
+
+        self.affectionate_words = {'names':['honey', 'love', 'sweetie'],
+                                   'adjectives':['my']}
+
+        self.normal_words = {'names':['bro', 'brah', 'broseph', 'friend',
+                                      'buddy', 'comrade', 'amigo'],
+                             'adjectives':['awesome', 'fantastic', 'cool']}
         self.realiser = Realiser()
 
         print 'nlg creation successful'
@@ -115,14 +130,21 @@ class NLG(object):
 
         if utter_type.lower() == 'greet':
             if 'name' in keywords:
-                return'Hello, %s!' % (keywords['name'])
-            else:
-                return 'Hello there!'
-            return
-
-        if utter_type.lower() == 'echo':
+                self.normal_words['names'].append(keywords['name'])
+            return 'Hello, %s!' % (self.tone_str('names'))
+        elif utter_type.lower() == 'echo':
             if 'lastinput' in keywords:
                 return keywords['lastinput']
+        elif utter_type.lower() == 'confirm':
+            return self.acknowledge(keywords)
+        elif utter_type.lower() == 'affirm':
+            return self.affirm(keywords)
+        elif utter_type.lower() == 'decline':
+            return self.decline(keywords)
+        elif utter_type.lower() == 'unknown':
+            return self.unknown(keywords)
+        elif utter_type.lower() == 'summarize':
+            return random.choice([self.acknowledge(keywords) + '\n', '']) + self.summarize_query(query)
 
         utterance = SPhraseSpec()
         subject = NPPhraseSpec(keywords['subject'])
@@ -156,16 +178,6 @@ class NLG(object):
             utterance.setInterrogative(InterrogativeType.WHO)
         elif utter_type.lower() == 'why':
             utterance.setInterrogative(InterrogativeType.WHY)
-        elif utter_type.lower() == 'confirm':
-            return self.acknowledge(keywords)
-        elif utter_type.lower() == 'affirm':
-            return self.affirm(keywords)
-        elif utter_type.lower() == 'decline':
-            return self.decline(keywords)
-        elif utter_type.lower() == 'unknown':
-            return self.unknown(keywords)
-        elif utter_type.lower() == 'summarize':
-            return random.choice([self.acknowledge(keywords) + '\n', '']) + self.summarize_query(query)
 
         target.addModifier(preposition)
         utterance.setSubject(keywords['subject'])
@@ -188,8 +200,7 @@ class NLG(object):
         """
 
         acknowledgement = random.choice(self.conf_responses)
-        if 'name' in keywords:
-            acknowledgement += random.choice([', ' + keywords['name'], ''])
+        acknowledgement += random.choice([', ' + random.choice([self.tone_str('adjectives') + ' ', '']) + self.tone_str('names'), ''])
         return acknowledgement + random.choice(['.', '!'])
 
     def affirm(self, keywords):
@@ -202,8 +213,7 @@ class NLG(object):
         """
 
         affirmation = random.choice(self.aff_responses)
-        if 'name' in keywords:
-            affirmation += random.choice([', ' + keywords['name'], ''])
+        affirmation += random.choice([', ' + random.choice([self.tone_str('adjectives') + ' ', '']) + self.tone_str('names'), ''])
         return affirmation + random.choice(['.', '!'])
 
     def decline(self, keywords):
@@ -216,8 +226,7 @@ class NLG(object):
         """
 
         decline = random.choice(self.neg_responses)
-        if 'name' in keywords:
-            decline += random.choice([', ' + keywords['name'], ''])
+        decline += random.choice([', ' + random.choice([self.tone_str('adjectives') + ' ', '']) + self.tone_str('names'), ''])
         return decline + random.choice(['.', '!'])
 
     def unknown(self, keywords):
@@ -248,6 +257,43 @@ class NLG(object):
             output.setPostmodifier('just said')
 
         return self.realiser.realiseDocument(output).strip()
+
+    def clarify(self, keywords):
+        """
+        Asks the user to specify a certain criteria if it is too broad.
+        """
+        
+        # if the necessary fields do not exist, then throw an exception
+        if not 'clarify_cat' in keywords and not 'clarify_list' in keywords:
+            raise NLGException('Not enough information in keywords')
+
+        # the first clause gets the user's attention
+        stat1 = SPhraseSpec('Hey ' + random.choice([random.choice([self.tone_str('adjectives') + ' ', '']) + self.tone_str('names'), '']), '')
+        # the second clause acknowledges that a specification was given
+        stat2 = SPhraseSpec('I', 'know', 'you wanted a type of %s' % (keywords['clarify_cat']))
+        # the third clause asks the user to provide a more narrow scope
+        stat3 = SPhraseSpec()
+        stat3.setCuePhrase('but please specify if')
+        stat3.setVerb('meant')
+        stat3.setSubject('you')
+        uniques = ''
+        for unique in keywords['clarify_list']:
+            if unique == keywords['clarify_list'][0]:
+                uniques += unique
+            elif unique == keywords['clarify_list'][-1]:
+                uniques += ', or ' + unique
+            else:
+                uniques += ', ' + unique
+        stat3.setPostmodifier(uniques)
+        
+        # create the final utterance out of all the parts
+        clarification = TextSpec()
+        clarification.addSpec(stat1)
+        clarification.addSpec(stat2)
+        clarification.addSpec(stat3)
+        clarification.setListConjunct(',')
+
+        return self.realiser.realiseDocument(clarification).strip()
 
     def summarize_query(self, query):
         """
@@ -327,9 +373,36 @@ class NLG(object):
 
         return self.realiser.realiseDocument(final).strip()
 
+    def change_tone(self, tone):
+        """
+        Changes the tone of the utterances created by the NLG.
+        If the inputted tone is not recognized by the NLG, then it will
+        default to normal.
+        """
+
+        self.tone = tone
+
+    def tone_str(self, key):
+        """
+        Helper function used to extract a random word or phrase
+        from the current tone's dictionary. If the given key does not exist,
+        an empty string is returned.
+        """
+
+        if self.tone == 'cruel':
+            if key in self.cruel_words:
+                return random.choice(self.cruel_words[key])
+        if self.tone == 'affectionate':
+            if key in self.affectionate_words:
+                return random.choice(self.affectionate_words[key])
+        if self.tone == 'normal':
+            if key in self.normal_words:
+                return random.choice(self.normal_words[key])
+        return ''
+
 class NLGException(Exception):
     """
-    Base class for throwing exceptions related to the NLG
+    Base class for throwing exceptions related to the NLG.
     """
 
     pass
