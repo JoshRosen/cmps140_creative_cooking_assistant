@@ -2,7 +2,7 @@
 Dialogue manager.
 """
 import logging
-from data_structures import ContentPlanMessage
+from nlg import ContentPlanMessage
 from nlu.messages import SearchMessage, YesNoMessage
 
 
