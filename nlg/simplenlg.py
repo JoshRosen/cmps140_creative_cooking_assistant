@@ -29,6 +29,9 @@ PPPhraseSpec = gateway.jvm.PPPhraseSpec
 SPhraseSpec = gateway.jvm.SPhraseSpec
 InterrogativeType = gateway.jvm.InterrogativeType
 Realiser = gateway.jvm.Realiser
+TextSpec = gateway.jvm.TextSpec
+Tense = gateway.jvm.Tense
+Form = gateway.jvm.Form
 
 
 def main():
