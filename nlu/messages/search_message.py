@@ -1,15 +1,17 @@
 from data_structures import ParsedInputMessage
-import random
 import nltk
 from nltk.corpus import wordnet
 import utils
 import wordlists
 
+from nlu import is_ingredient, normalize_ingredient_name
+
+
 def get_ingredients(tokenized_string, enum=False):
     """
     Returns a tuple of (index, ingredient) or a list of ingredients from a
     tokenized string.
-    
+
     >>> raw_input_string = "I like apples, cinnamon, and pepper."
     >>> tokenizer = nltk.WordPunctTokenizer()
     >>> tokenized_string = tokenizer.tokenize(raw_input_string)
@@ -18,18 +20,14 @@ def get_ingredients(tokenized_string, enum=False):
     4 cinnamon
     7 pepper
     """
-    
-    stemmed_string = utils.stem_words(tokenized_string)
-    stemmed_ingredients = utils.stem_words(wordlists.ingredients)
-    results = _extract_words_from_list(stemmed_ingredients,
-                                       stemmed_string,
-                                       True)
+    words = [normalize_ingredient_name(x) for x in tokenized_string]
+    results = [x for x in enumerate(words) if is_ingredient(x[1])]
     if enum:
         return [(i, tokenized_string[i]) for i, w in results]
     else:
         return [tokenized_string[i] for i, w in results]
-    
-    
+
+
 def get_meals(tokenized_string, enum=False):
     """
     Returns a tuple of (index, meal) or a list of meals from a
@@ -66,6 +64,7 @@ def get_cuisines(tokenized_string, enum=False):
     
     stemmed_string = utils.stem_words(tokenized_string)
     cuisines = set.difference(wordlists.cuisines, wordlists.meal_types)
+    cuisines = cuisines.union(wordlists.list_of_adjectivals)
     stemmed_cuisines = utils.stem_words(cuisines)
     results = _extract_words_from_list(stemmed_cuisines, stemmed_string, True)
     if enum:

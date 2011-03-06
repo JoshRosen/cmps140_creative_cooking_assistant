@@ -52,7 +52,9 @@ class NLG(object):
                       'clarify_list':['chicken', 'beef', 'pork']}
 
         self.query = {'include_ingredients':['chicken', 'pineapple', 'pepper'],
-                      'exclude_ingredients':['dishwashing soap', 'salt'],
+                      'prep_time':15,
+                      'total_time':20,
+                      'num_ingredients':3,
                       'include_cuisines':['Mexican', 'Chinese', 'Thai']}
 
         self.tone = 'normal'
@@ -100,7 +102,7 @@ class NLG(object):
 
         return '\n'.join(output)
 
-    def generate(self, utter_type, keywords, query=None):
+    def generate(self, utter_type, keywords, query=None, recipe=None, recipes=None):
         """
         Input: a type of inquiry to create and a dictionary of keywords.
         Types of inquiries include 'what', 'who', 'where', 'why', 'how', 
@@ -145,6 +147,8 @@ class NLG(object):
             return self.unknown(keywords)
         elif utter_type.lower() == 'summarize':
             return random.choice([self.acknowledge(keywords) + '\n', '']) + self.summarize_query(query)
+        elif utter_type.lower() == 'clarify':
+            return self.clarify(keywords)
 
         utterance = SPhraseSpec()
         subject = NPPhraseSpec(keywords['subject'])
@@ -259,7 +263,7 @@ class NLG(object):
         return self.realiser.realiseDocument(output).strip()
 
     def clarify(self, keywords):
-        """
+        """ 
         Asks the user to specify a certain criteria if it is too broad.
         """
         
@@ -294,6 +298,15 @@ class NLG(object):
         clarification.setListConjunct(',')
 
         return self.realiser.realiseDocument(clarification).strip()
+
+    def specify_recipe(self, recipes):
+        """
+        Returns a list of recipes for the user to choose
+        """
+
+        if recipes == None:
+            raise NLGException('specify_recipe: recipes not given')
+        pass
 
     def summarize_query(self, query):
         """
@@ -358,7 +371,7 @@ class NLG(object):
             if 'num_steps' in query and query['num_steps'] != None:
                 steps_list.append('%i steps to complete' % (query['num_steps']))
             if 'num_ingredients' in query and query['num_ingredients'] != None:
-                steps_list.append('%i ingredients' % (query['num_ingredients']))
+                steps_list.append('require %i ingredients' % (query['num_ingredients']))
             for step in steps_list:
                 if step == steps_list[0]:
                     steps.addComplement('recipes that require ' + step)

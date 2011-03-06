@@ -4,7 +4,6 @@ Object-based interface to the database used by the chatbot.
 The database is accessed through the Database object:
 
 >>> db = Database("sqlite:///:memory:")
->>> db.create_database_schema()
 
 (Note: for now, sqlite is the only supported database; support for other
 databases will require adding string length constraints to some of the database
@@ -102,10 +101,11 @@ get_recipes() method.
 from collections import defaultdict
 
 from sqlalchemy import create_engine, Table, Column, Integer, \
-    String, ForeignKey
+    String, ForeignKey, UniqueConstraint
 from sqlalchemy.sql.expression import between
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import deferred, relationship, sessionmaker, join
+from sqlalchemy.orm import deferred, relationship, sessionmaker, join, backref
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.interfaces import PoolListener
 
 from nlu import extract_ingredient_parts, normalize_ingredient_name
@@ -162,6 +162,8 @@ class Database(object):
         """
         Base.metadata.create_all(self._engine)
 
+    # Recipe- and ingredient-related methods
+
     def add_from_recipe_parts(self, recipe_parts):
         """
         Add a recipe from a dictionary describing the recipe.  The dictionary
@@ -169,6 +171,13 @@ class Database(object):
         extract_recipe_parts function in allrecipes.py.
 
         Raises a DuplicateRecipeException when inserting a duplicate recipe.
+        """
+        self._add_from_recipe_parts(recipe_parts)
+        self._session.commit()
+
+    def _add_from_recipe_parts(self, recipe_parts):
+        """
+        Adds a recipe, but doesn't commit the transaction.
         """
         # First, make sure that we're not inserting a duplicate record.
         # Duplicates are considered to be recipes with the same url.
@@ -201,7 +210,6 @@ class Database(object):
             if not ingredient:
                 ingredient = Ingredient(ingredient_parts['base_ingredient'])
                 self._session.add(ingredient)
-                self._session.flush()
             unit = ingredient_parts['unit']
             quantity = ingredient_parts['quantity']
             modifiers = ingredient_parts['modifiers']
@@ -224,11 +232,9 @@ class Database(object):
             if not cuisine:
                 cuisine = Cuisine(cuisine_name)
                 self._session.add(cuisine)
-                self._session.flush()
             recipe.cuisines.append(cuisine)
 
         self._session.add(recipe)
-        self._session.commit()
 
     def get_recipes(self, include_ingredients=(), exclude_ingredients=(),
                     include_cuisines=(), exclude_cuisines=(),
@@ -320,6 +326,51 @@ class Database(object):
             query = query.filter_by(name=name)
         return query
 
+    # Ontology-related methods
+
+    def add_ontology_node(self, ontology_tuple):
+        """
+        Add an ontology node from a tuple representing the path from the new
+        node to a root of a tree in the ontology.
+
+        Raises a DuplicateOntologyNodeException when adding a duplicate node.
+        """
+        root_name = ontology_tuple[0]
+        try:
+            root = self._session.query(OntologyNode).filter_by(name=root_name,
+                supertype=None).one()
+        except NoResultFound:
+            root = OntologyNode(root_name)
+            #self._session.add(OntologyNode)
+        added_nodes = False
+        last_node = root
+        for node_name in ontology_tuple[1:]:
+            try:
+                node = self._session.query(OntologyNode).filter_by(
+                    name=node_name, supertype=last_node).one()
+            except NoResultFound:
+                node = OntologyNode(node_name)
+                node.supertype = last_node
+                added_nodes = True
+            last_node = node
+        if added_nodes:
+            self._session.add(last_node)
+            self._session.commit()
+        else:
+            raise DuplicateOntologyNodeException(
+                'OntologyNode %s already exists.' % str(ontology_tuple))
+
+    def get_ontology_nodes(self, name=None, only_root_nodes=False):
+        """
+        Get ontology nodes matching the given criteria.
+        """
+        query = self._session.query(OntologyNode)
+        if name != None:
+            query = query.filter_by(name=name)
+        if only_root_nodes:
+            query = query.filter_by(supertype=None)
+        return query
+
 
 class RecipeIngredientAssociation(Base):
     """
@@ -407,6 +458,98 @@ class Recipe(Base):
         return result
 
 
+class OntologyNode(Base):
+    """
+    Represents a node in a tree in the ontology.  Given an OntologyNode, you
+    can explore its relationship to other nodes in the ontology.
+
+    >>> db = Database("sqlite:///:memory:")
+    >>> db.add_ontology_node(('ingredient', 'fruit', 'apple'))
+    >>> db.add_ontology_node(('ingredient', 'fruit', 'orange'))
+    >>> db.add_ontology_node(('ingredient', 'vegetable', 'potato'))
+
+    >>> apple = db.get_ontology_nodes('apple').one()
+    >>> apple.is_root()
+    False
+    >>> [s.name for s in apple.siblings]
+    ['orange']
+    >>> apple.is_subtype_of('ingredient')
+    True
+    >>> apple.is_subtype_of('vegetable')
+    False
+    >>> [s.name for s in apple.path_from_root]
+    ['ingredient', 'fruit', 'apple']
+    """
+    __tablename__ = 'ontology_nodes'
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    supertype_id = Column(Integer, ForeignKey('ontology_nodes.id'))
+    subtypes = relationship("OntologyNode", backref=backref('supertype',
+        remote_side=id))
+    # Two different OntologyNodes may have the same name if they differ in
+    # path_from_root, hence these uniqueness constraints.  As a base case,
+    # root nodes must have distinct names.  Recursively, nodes with the same
+    # name are different if their supertypes are different.
+    __table_args__ = (
+        UniqueConstraint('name', 'supertype_id'),
+        {}
+    )
+
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return "<OntologyNode(%s)>" % self.name
+
+    def is_subtype_of(self, ontology_node_or_name):
+        """
+        Return True if this OntologyNode is a subtype of the given ontology
+        node or an ontology node with the given name, False otherwise.
+        """
+        # TODO: normalize ingredient type names so this search is less brittle.
+        if isinstance(ontology_node_or_name, OntologyNode):
+            if self == ontology_node_or_name:
+                return True
+        else:
+            if self.name == ontology_node_or_name:
+                return True
+        if not self.supertype:
+            return False
+        else:
+            return self.supertype.is_subtype_of(ontology_node_or_name)
+
+    def is_root(self):
+        """
+        Return True if this OntologyNode is the root of a tree in the ontology.
+        """
+        return self.supertype == None
+
+    @property
+    def path_from_root(self):
+        """
+        A list describing the path from the root of a tree in the ontology to
+        this OntologyNode.
+        """
+        path = [self]
+        node = self.supertype
+        while node:
+            path.insert(0, node)
+            node = node.supertype
+        return path
+
+    @property
+    def siblings(self):
+        """
+        An iterable that lists the siblings of this OntologyNode.  An
+        OntologyNode is not considered its own sibling.
+        """
+        supertype = self.supertype
+        if supertype:
+            return set(supertype.subtypes) - set([self])
+        else:
+            return []
+
+
 class Ingredient(Base):
     """
     Represents a single ingredient as the food item itself, not a quantity of a
@@ -455,7 +598,14 @@ class DatabaseException(Exception):
 
 class DuplicateRecipeException(DatabaseException):
     """
-    Thrown when trying to insert a duplicate recipe into the database.
+    Thrown when trying to add a duplicate recipe to the database.
+    """
+    pass
+
+
+class DuplicateOntologyNodeException(DatabaseException):
+    """
+    Thrown when trying to add a duplicate ontology node to the database.
     """
     pass
 

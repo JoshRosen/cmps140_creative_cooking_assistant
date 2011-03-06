@@ -49,8 +49,7 @@ class DialogueManager(object):
         # If we didn't understand the user:
         if not parsed_input:
             content_plan = ContentPlanMessage("echo")
-            content_plan.frame['message'] = \
-                "Could you explain that again?"
+            content_plan['message'] = "Could you explain that again?"
             return content_plan
 
         # For now, take first (highest confidence) message.
@@ -65,39 +64,34 @@ class DialogueManager(object):
             # Check whether the query specifies no criteria:
             if not any(query.values()):
                 content_plan = ContentPlanMessage("echo")
-                content_plan.frame['message'] = \
-                    "I didn't understand your query."
+                content_plan['message'] = "I didn't understand your query."
                 return content_plan
             # Search the database and remember the search results.
             self.search_results = self.db.get_recipes(**query)
 
             content_plan = ContentPlanMessage("echo")
             if not self.search_results:
-                content_plan.frame['message'] = \
-                    "I didn't find any recipes."
+                content_plan['message'] = "I didn't find any recipes."
             else:
-                content_plan.frame['message'] = \
-                    "I found %i recipes.  Would you like to see them?" % \
+                content_plan['message'] = \
+                    "I found %i recipes.  Would you like to see one?" % \
                     len(self.search_results)
             return content_plan
 
         # If the user answers 'yes', show them the recipes:
         elif isinstance(parsed_input[0], YesNoMessage) and self.search_results:
-            content_plan = ContentPlanMessage("echo")
             if parsed_input[0].getDecision():
-                content_plan.frame['message'] = ["Okay, here are the recipes:"]
-                for recipe in self.search_results:
-                    content_plan.frame['message'].append(recipe.title)
-                content_plan.frame['message'] = \
-                    '\n'.join(content_plan.frame['message'])
+                content_plan = ContentPlanMessage("show_recipe")
+                content_plan['recipe'] = self.search_results[0]
             else:
-                content_plan.frame['message'] = "Okay.  Let's restart."
+                content_plan = ContentPlanMessage("echo")
+                content_plan['message'] = "Okay.  Let's restart."
             self.search_results = None
             return content_plan
 
         # Handle NLU messages that we don't know how to respond to
         else:
             content_plan = ContentPlanMessage("echo")
-            content_plan.frame['message'] = \
+            content_plan['message'] = \
                 "Ask me about recipes and ingredients!"
             return content_plan

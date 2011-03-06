@@ -6,9 +6,11 @@ import re
 import logging
 from operator import itemgetter
 from nltk.stem.wordnet import WordNetLemmatizer
+from nltk.corpus import wordnet
 
 from data_structures import ParsedInputMessage, Message
 # pylint:disable=E0611
+import wordlists
 from wordlists import units_of_measure, food_adjectives
 
 
@@ -36,6 +38,37 @@ def time_to_minutes(time):
     if minutes == None:
         minutes = 0
     return int(minutes) + (int(hours) * 60)
+
+
+def is_ingredient(word):
+    """
+    Return True if the word is an ingredient, False otherwise.
+
+    >>> is_ingredient('milk')
+    True
+    >>> is_ingredient('blackberries')
+    True
+    >>> is_ingredient('Canada')
+    False
+    >>> is_ingredient('breakfast')
+    False
+    >>> is_ingredient('dish')
+    False
+    """
+    reject_synsets = ['meal.n.01', 'meal.n.02', 'dish.n.02', 'vitamin.n.01']
+    reject_synsets = set(wordnet.synset(w) for w in reject_synsets)
+    accept_synsets = ['food.n.01', 'food.n.02']
+    accept_synsets = set(wordnet.synset(w) for w in accept_synsets)
+    for word_synset in wordnet.synsets(word, wordnet.NOUN):
+        all_synsets = set(word_synset.closure(lambda s: s.hypernyms()))
+        all_synsets.add(word_synset)
+        for synset in reject_synsets:
+            if synset in all_synsets:
+                return False
+        for synset in accept_synsets:
+            if synset in all_synsets:
+                return True
+    return word in wordlists.ingredients
 
 
 def is_unit_of_measurement(word):
