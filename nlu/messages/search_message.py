@@ -1,4 +1,4 @@
-from data_structures import ParsedInputMessage
+from nlu.messages.parsed_input_message import ParsedInputMessage
 import random
 import nltk
 from nltk.corpus import wordnet

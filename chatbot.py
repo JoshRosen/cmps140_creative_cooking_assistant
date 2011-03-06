@@ -7,7 +7,6 @@ from nlg import NaturalLanguageGenerator
 from nlu import NaturalLanguageUnderstander
 from nlu.messages import *
 from dm import DialogueManager
-from data_structures import ParsedInputMessage
 
 # Monkey-patch the Python 2.7 logger.getChild() method into the logger class,
 # to maintain backwards-compatibility with Python 2.6.

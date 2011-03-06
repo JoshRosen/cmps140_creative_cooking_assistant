@@ -1,8 +1,8 @@
-from data_structures import ParsedInputMessage
+from nlu.messages.parsed_input_message import ParsedInputMessage
 
 class SystemMessage(ParsedInputMessage):
     frame_keys = ['action']
-    keywords = ['exit', '/debug']
+    exit_keywords = ['adieu.n.01', 'bye.n.01', 'farewell.n.02', 'exit.v.01']
                 
     def _parse(self, raw_input_string):
         """
@@ -11,8 +11,6 @@ class SystemMessage(ParsedInputMessage):
         
         if 'exit' == raw_input_string:
             frame['action'] = 'exit'
-        elif '/debug' == raw_input_string:
-            frame['action'] = 'debug'
          
     @staticmethod
     def confidence(raw_input_string):

@@ -7,7 +7,7 @@ import logging
 from operator import itemgetter
 from nltk.stem.wordnet import WordNetLemmatizer
 
-from data_structures import ParsedInputMessage, Message
+from data_structures import Message
 # pylint:disable=E0611
 from wordlists import units_of_measure, food_adjectives
 
@@ -58,7 +58,7 @@ def normalize_ingredient_name(ingredient_name):
     """
     Normalizes an ingredient name, removing pluralization.
     >>> normalize_ingredient_name('eggs')
-    'eggs'
+    'egg'
     >>> normalize_ingredient_name('bing cherries')
     'bing cherry'
     """
@@ -89,7 +89,7 @@ def extract_ingredient_parts(ingredient_string):
     >>> extract_ingredient_parts('12 cups lettuce')
     {'base_ingredient': 'lettuce', 'unit': 'cups', 'quantity': '12'}
     >>> extract_ingredient_parts("14 large, fresh eggs")
-    {'base_ingredient': 'eggs', 'modifiers': 'large, fresh', 'quantity': '14'}
+    {'base_ingredient': 'egg', 'modifiers': 'large, fresh', 'quantity': '14'}
 
     More complex quantities:
 
@@ -173,7 +173,8 @@ class NaturalLanguageUnderstander(object):
     >>> logger = logging.getLogger()
     >>> confidenceThreshold = .5
     >>> nlu = NaturalLanguageUnderstander(confidenceThreshold, logger)
-    
+
+    >>> from nlu.messages.parsed_input_message import ParsedInputMessage
     >>> class EchoMessage(ParsedInputMessage):
     ...     frame = {'echo':None}
     ...     
