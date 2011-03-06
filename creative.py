@@ -19,17 +19,17 @@ from types import *
 # not sure if I will be using this yet.
 from data_structures import ContentPlanMessage
 
-class question_set(object):
-    def __init__():
+class QuestionSet(object):
+    def __init__(self):
         """Creates a list of questions to discover some factoid
 
             by using SNLG.
         """
         pass
 
-class factoid(object):
+class Factoid(object):
     """Factoids are facts that we want to discover based on curiosity"""
-    def __init__(the_type, categ=None):
+    def __init__(self, the_type, categ=None):
         """
             NOT YET IMPLEMENTED.
             The factoids contain methods and a user factoid ontology.
@@ -58,31 +58,31 @@ class UserModel(object):
     """
     Contains data describes tastes and likes of user.
     """
-    def __init__():
+    def __init__(self):
         self.lasting_attrib = {
-            'user_name':            factoid(StringType, None),  
+            'user_name':            Factoid(StringType, None),  
                 # constraint: ('has FirstName or has LastName')
-            'agent_personality_preference': factoid(StringType, None),
+            'agent_personality_preference': Factoid(StringType, None),
                 # formal, familiar (maybe a tad much), sadistic, insecure 
-            'first_name':           factoid(StringType, None),  
-            'last_name':            factoid(StringType, None),
+            'first_name':           Factoid(StringType, None),  
+            'last_name':            Factoid(StringType, None),
             # 
             # below replace with the right type.
-            'like_meat':            factoid(StringType, None),
-            'like_vegie':           factoid(StringType, None),
-            'like_shellfish':       factoid(StringType, None),
-            'like_spice':           factoid(StringType, None),
-            'is_vegetarian':        factoid(StringType, None),
+            'like_meat':            Factoid(StringType, None),
+            'like_vegie':           Factoid(StringType, None),
+            'like_shellfish':       Factoid(StringType, None),
+            'like_spice':           Factoid(StringType, None),
+            'is_vegetarian':        Factoid(StringType, None),
             #
-            'meat_list':            factoid(StringType, None),
-            'fish_list':            factoid(StringType, None),
-            'shellfish_list':       factoid(StringType, None),
-            'spice_list':           factoid(StringType, None),
-            'cuisine_country_list': factoid(StringType, None),
+            'meat_list':            Factoid(StringType, None),
+            'fish_list':            Factoid(StringType, None),
+            'shellfish_list':       Factoid(StringType, None),
+            'spice_list':           Factoid(StringType, None),
+            'cuisine_country_list': Factoid(StringType, None),
             #
-            'lose_weight':          factoid(StringType, None),
-            'gain_weight':          factoid(StringType, None),
-            'patience':             factoid(StringType, None),
+            'lose_weight':          Factoid(StringType, None),
+            'gain_weight':          Factoid(StringType, None),
+            'patience':             Factoid(StringType, None),
         }
 
         #######################################################################
@@ -119,13 +119,13 @@ class UserModel(object):
 
     }
 
-    def ingredient_suggestions():
+    def ingredient_suggestions(self):
         pass
 
     def __init__(self, db, logger):
         pass
 
-    def curious():
+    def curious(self):
         """curious tries to output user information statistically
 
            It uses a model based on what it doesn't know about the user, and 
@@ -148,12 +148,19 @@ class CreativeManager(object):
     It's goal is to implement - initially a quick parrot mode (contingency plan), 
     and an alternate Multimodal Creative engine - more edgy than the current
     plan - that will provide creative recipes.
+
     """
 
-    def __init__(self, db, logger, nlu, nlg, dm):
+    def __init__(self, db, logger, nlu=None, nlg=None, dm=None):
         """
         Create a new Creative Manager, it allows using standard nlu, nlg, and dm
         or bypassing them.  For now we are using the same one.
+
+        >>> from database import Database
+        >>> db = Database('sqlite:///:memory:')
+        >>> bot = CreativeManager(db, logging.getLogger())
+        >>> response = bot.handle_input("Hi!")
+
         """
         self.db = db
         self.log = logger
@@ -216,9 +223,7 @@ class CreativeManager(object):
         Given a content plan representing the content to be expressed,
         return a generated utterance.
         """
-        # TODO: implement
-        # sentence planner
-        # surface realizer
+        # TODO: implement sentence planner, surface realizer
         if content_plan.msg_type == "ask_for_name":
             return "What's your name?"
         elif content_plan.msg_type == "echo_user_input":
@@ -231,15 +236,15 @@ class CreativeManager(object):
             return "I didn't understand what you just said."
 
     def respond(self, user_input):
-            ##########################################################
-            # for now we test this with the regular nlu, dm, and nlg
-            # which have been passed. Later we will try experimental versions.
-            ##########################################################
-            self.log.debug('%12s = "%s"' % ('user_input', user_input))
-            parsed_input = self.nlu.parse_input(user_input) 
-            self.log.debug('%12s = "%s"' % ('parsed_input', parsed_input))
-            content_plan = self.dm.plan_response(parsed_input) 
-            self.log.debug('%12s = "%s"' % ('content_plan', content_plan))
-            bot_response = self.nlg.generate_response(content_plan) 
-            return('CR:' + bot_response)
+        ##########################################################
+        # for now we test this with the regular nlu, dm, and nlg
+        # which have been passed. Later we will try experimental versions.
+        ##########################################################
+        self.log.debug('%12s = "%s"' % ('user_input', user_input))
+        parsed_input = self.nlu.parse_input(user_input) 
+        self.log.debug('%12s = "%s"' % ('parsed_input', parsed_input))
+        content_plan = self.dm.plan_response(parsed_input) 
+        self.log.debug('%12s = "%s"' % ('content_plan', content_plan))
+        bot_response = self.nlg.generate_response(content_plan) 
+        return('CR:' + bot_response)
 
