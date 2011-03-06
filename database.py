@@ -172,6 +172,13 @@ class Database(object):
 
         Raises a DuplicateRecipeException when inserting a duplicate recipe.
         """
+        self._add_from_recipe_parts(recipe_parts)
+        self._session.commit()
+
+    def _add_from_recipe_parts(self, recipe_parts):
+        """
+        Adds a recipe, but doesn't commit the transaction.
+        """
         # First, make sure that we're not inserting a duplicate record.
         # Duplicates are considered to be recipes with the same url.
         duplicate = self._session.query(Recipe).\
@@ -203,7 +210,6 @@ class Database(object):
             if not ingredient:
                 ingredient = Ingredient(ingredient_parts['base_ingredient'])
                 self._session.add(ingredient)
-                self._session.flush()
             unit = ingredient_parts['unit']
             quantity = ingredient_parts['quantity']
             modifiers = ingredient_parts['modifiers']
@@ -226,11 +232,9 @@ class Database(object):
             if not cuisine:
                 cuisine = Cuisine(cuisine_name)
                 self._session.add(cuisine)
-                self._session.flush()
             recipe.cuisines.append(cuisine)
 
         self._session.add(recipe)
-        self._session.commit()
 
     def get_recipes(self, include_ingredients=(), exclude_ingredients=(),
                     include_cuisines=(), exclude_cuisines=(),
