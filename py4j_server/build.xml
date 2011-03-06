@@ -4,13 +4,24 @@
     <property name="build" value="build"/>
     <property name="src" value="."/>
     <property name="lib" value="lib"/>
-    <property name="jarname" value="nlgserver.jar"/>
+    <property name="jarname" value="py4jserver.jar"/>
 
     <path id="build-classpath">
         <fileset dir="${lib}">
             <include name="*.jar"/>
         </fileset>
     </path>
+
+    <!-- See http://stackoverflow.com/questions/858766/ -->
+    <pathconvert property="manifest-classpath" pathsep=" ">
+        <path refid="build-classpath"/>
+        <mapper>
+           <chainedmapper>
+               <flattenmapper/>
+               <globmapper from="*.jar" to="lib/*.jar"/>
+           </chainedmapper>
+        </mapper>
+    </pathconvert>
 
     <target name="compile" depends="init">
         <javac destdir="${build}" includeantruntime="false">
@@ -21,16 +32,14 @@
 
     <target name="manifest">
         <manifest file="${build}/MANIFEST.MF">
-            <attribute name="Main-Class" value="NLGServer" />
+            <attribute name="Main-Class" value="Py4JServer" />
+            <attribute name="Class-Path" value="${manifest-classpath}" />
         </manifest>
     </target>
 
     <target name="jar" depends="compile, manifest">
         <jar destfile="${build}/${jarname}" manifest="${build}/MANIFEST.MF">
-          <!-- See http://stackoverflow.com/questions/515428/ -->
-          <zipgroupfileset dir="${lib}" includes="*.jar"/>
           <fileset dir="${build}" includes="*.class" />
-          <fileset dir="${lib}" includes="*.txt" />
         </jar>
     </target>
 

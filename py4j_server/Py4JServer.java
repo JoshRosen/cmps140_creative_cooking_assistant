@@ -1,7 +1,7 @@
 import py4j.GatewayServer;
 import java.io.*;
 
-public class NLGServer {
+public class Py4JServer {
 
     public static void main(String[] args) {
         int port;
@@ -10,13 +10,13 @@ public class NLGServer {
             System.exit(1);
         }
         port = Integer.parseInt(args[0]);
-        GatewayServer gatewayServer = new GatewayServer(new NLGServer(),
+        GatewayServer gatewayServer = new GatewayServer(new Py4JServer(),
                                                         port);
         gatewayServer.start();
         /* Print out the listening port so that clients can discover it. */
         int listening_port = gatewayServer.getListeningPort();
         System.out.println("" + listening_port);
-        System.out.println("NLG Gateway Server started on port " +
+        System.out.println("Py4J Gateway Server started on port " +
             listening_port);
 
         /* Exit on EOF or broken pipe.  This ensures that the server dies if
