@@ -12,6 +12,7 @@ of the client, provides agents with personalities, provides new creative
 recipes that are different than any of the existing recipes.
 """
 import logging
+import cPickle
 from types import *
 # probably wont use this for now.
 # will instead try to create dialogue using the snlg.py.
@@ -54,10 +55,32 @@ class Factoid(object):
         """
         pass
 
+class PatienceTrigger(object):
+    """This class is utilized to evaluate whether the user is impatient
+
+       If the user is impatient we will trigger the delivery of a recipe.
+    """
+
+    def __init__(self):
+        pass
+
 class UserModel(object):
     """
     Contains data describes tastes and likes of user.
     """
+
+    # One of the forced greeting speeches is always the start.
+    first_greeting = \
+        "Welcome to the Creative Cooking Advisor.  Our goal is to based on\n" \
+        + "tastes and preferences provide you with advise on cooking recipes that\n" \
+        + "will suit your wants and needs.  At any time you can say: 'creative on' and\n" \
+        + "you will enable creative mode.  'creative off' will disable it.\n" \
+        + "Are you a new user?\n"
+
+    greetings = (
+        'Insert a list of greetings here.\n'
+    )
+
     def __init__(self):
         self.lasting_attrib = {
             'user_name':            Factoid(StringType, None),  
@@ -68,6 +91,11 @@ class UserModel(object):
             'last_name':            Factoid(StringType, None),
             # 
             # below replace with the right type.
+            'glucose_intolerance':  Factoid(StringType, None),
+            'losing_weight':        Factoid(StringType, None),
+            'gaining_weight':       Factoid(StringType, None),
+            'diabetic':             Factoid(StringType, None),
+            #
             'like_meat':            Factoid(StringType, None),
             'like_vegie':           Factoid(StringType, None),
             'like_shellfish':       Factoid(StringType, None),
@@ -83,16 +111,31 @@ class UserModel(object):
             'lose_weight':          Factoid(StringType, None),
             'gain_weight':          Factoid(StringType, None),
             'patience':             Factoid(StringType, None),
+            #
+            'sadistic':             Factoid(StringType, None),
+            'flirtatious':          Factoid(StringType, None),
+            'nerdy':                Factoid(StringType, None),
+            'valley_girl':          Factoid(StringType, None),
         }
 
         #######################################################################
         # This are the starting sets that will be changed dynamically to create
         # better dialogs. 
+        # Accept questions about valid users.
+        #
         greeting_factoids = {
-            'user_name':                    100,
+            'user_name':                    100,    # Must be a valid file_name say up to 8
+                                                    # characters, underscore, or digit
             'agent_personality_preference': 100,
             'first_name':                   100, 
             'last_name':                    100, 
+        }
+
+        dietary_restriction = {
+            'glucose_intolerance':          100, 
+            'losing_weight':                100,
+            'gaining_weight':               100,
+            'diabetic':                     100,
         }
 
         like_preferences = {
@@ -112,12 +155,41 @@ class UserModel(object):
             'cuisine_country_list': 70,
         }
 
-        other_preferences = {
-            'lose_weight':  60,
-            'gain_weight':  30,
-            'patience':     30,
+        cuisine_preferences = {
+            'countries':            50,
+            'type':                 50,
+        }
 
-    }
+        other_preferences = {
+            'patient':     30,
+        }
+
+        agent_preference = {
+            'sadistic':                     100, 
+            'flirtatious':                  100,
+            'nerdy':                        100,
+            'valley_girl':                  100,
+        }
+
+    def saving_user(self):
+        """When quitting, or changing user, we save this user.
+       
+        This saves the preferences of a user, so that they can be
+        restored later.
+        Must make sure - that the users directory exists.
+        """
+        cPickle.dump( self, open( "users/" + self.user + ".p", "wb" ) )
+
+    def restoring_user(self):
+        """Once user is known, restore his data from the user list.
+
+        Based on this data the new dialogue will begin\n
+        You cannot call this until the user is known.
+        The first thing to be done here will be to check if this user
+        exists.
+        """
+        self =  cPickle.load(open( "users/" + self.user + ".p")) 
+
 
     def ingredient_suggestions(self):
         pass
@@ -139,6 +211,7 @@ class UserModel(object):
         Provides a greeting with the purpose, to learn who the user is, and 
         provide a desired assistant based on the personality of the user.
         """
+
         pass
 
 class CreativeManager(object):
