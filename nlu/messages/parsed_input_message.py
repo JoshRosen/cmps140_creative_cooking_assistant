@@ -1,4 +1,4 @@
-#from nlu.stanford_utils import extract_sentence_type
+from nlu.stanford_utils import extract_sentence_type
 from data_structures import Message
 
 class ParsedInputMessage(Message):
@@ -25,8 +25,8 @@ class ParsedInputMessage(Message):
         
         # set meta:sentence
         #TODO: Figure out why py4j calls Exception TypeError: "'NoneType' object is not callable" in...
-        sentence_type, sentence_word = (None,None) #extract_sentence_type(raw_input_string)
-        #self.meta['sentence'] = {'type':sentence_type, 'word':sentence_word}
+        sentence_type, sentence_word = extract_sentence_type(raw_input_string)
+        self.meta['sentence'] = {'type':sentence_type, 'word':sentence_word}
         # call implemented parse method
         self._parse(raw_input_string)
 

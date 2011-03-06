@@ -202,8 +202,8 @@ class NaturalLanguageUnderstander(object):
     >>> message3 = nlu.parse_input('I like turtles...')
     >>> len(message3)
     1
-    >>> type(message3[0])
-    <class 'nlu.EchoMessage'>
+    >>> isinstance(message3[0], EchoMessage)
+    True
     """
 
     def __init__(self, confidenceThreshold, logger):
