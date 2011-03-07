@@ -1,10 +1,9 @@
 <?xml version="1.0"?>
-<project basedir="." default="jar">
+<project basedir="." default="compile">
 
     <property name="build" value="build"/>
     <property name="src" value="."/>
     <property name="lib" value="lib"/>
-    <property name="jarname" value="py4jserver.jar"/>
 
     <path id="build-classpath">
         <fileset dir="${lib}">
@@ -12,35 +11,11 @@
         </fileset>
     </path>
 
-    <!-- See http://stackoverflow.com/questions/858766/ -->
-    <pathconvert property="manifest-classpath" pathsep=" ">
-        <path refid="build-classpath"/>
-        <mapper>
-           <chainedmapper>
-               <flattenmapper/>
-               <globmapper from="*.jar" to="lib/*.jar"/>
-           </chainedmapper>
-        </mapper>
-    </pathconvert>
-
     <target name="compile" depends="init">
         <javac destdir="${build}" includeantruntime="false">
             <src path="${src}"/>
             <classpath refid="build-classpath"/>
         </javac>
-    </target>
-
-    <target name="manifest">
-        <manifest file="${build}/MANIFEST.MF">
-            <attribute name="Main-Class" value="Py4JServer" />
-            <attribute name="Class-Path" value="${manifest-classpath}" />
-        </manifest>
-    </target>
-
-    <target name="jar" depends="compile, manifest">
-        <jar destfile="${build}/${jarname}" manifest="${build}/MANIFEST.MF">
-          <fileset dir="${build}" includes="*.class" />
-        </jar>
     </target>
 
     <target name="init">
