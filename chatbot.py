@@ -1,6 +1,7 @@
 """
 Chatbot application object.
 """
+import cPickle
 import code
 import logging
 from nlg import NaturalLanguageGenerator
@@ -38,6 +39,11 @@ class Chatbot(object):
         >>> db = Database('sqlite:///:memory:')
         >>> bot = Chatbot(db, logging.getLogger())
         >>> response = bot.handle_input("Hi!")
+
+        The Chatbot needs to be pickle-able for the web server to work.
+
+        >>> pickled_bot = cPickle.dumps(bot)
+        >>> bot2 = cPickle.loads(pickled_bot)
         """
         self.enable_debug = enable_debug
         self.db = db

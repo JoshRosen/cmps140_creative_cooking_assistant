@@ -32,6 +32,11 @@ from simplenlg import NPPhraseSpec, PPPhraseSpec, SPhraseSpec, Realiser, \
 
 HORIZONTAL_LINE = '-' * 70
 
+# The realiser can't be stored in a NaturalLanguageGenerator instance variable
+# because Py4J can't pickle Java objects, which prevents the web server from
+# functioning.
+REALISER = Realiser()
+
 
 class ContentPlanMessage(dict):
     """
@@ -116,7 +121,6 @@ class NaturalLanguageGenerator(object):
             'adjectives': ['awesome', 'fantastic', 'cool']
         }
 
-        self.realiser = Realiser()
         self.log = logger
         self.log.info('NLG creation successful')
 
@@ -288,7 +292,7 @@ class NaturalLanguageGenerator(object):
                 utterance.addModifier(modifier)
         utterance.addComplement(target)
 
-        output = self.realiser.realiseDocument(utterance).strip()
+        output = REALISER.realiseDocument(utterance).strip()
         return output
 
     def acknowledge(self, keywords):
@@ -357,7 +361,7 @@ class NaturalLanguageGenerator(object):
             output.setComplement('what you')
             output.setPostmodifier('just said')
 
-        return self.realiser.realiseDocument(output).strip()
+        return REALISER.realiseDocument(output).strip()
 
     def clarify(self, keywords):
         """
@@ -394,7 +398,7 @@ class NaturalLanguageGenerator(object):
         clarification.addSpec(stat3)
         clarification.setListConjunct(',')
 
-        return self.realiser.realiseDocument(clarification).strip()
+        return REALISER.realiseDocument(clarification).strip()
 
     def summarize_query(self, query):
         """
@@ -472,7 +476,7 @@ class NaturalLanguageGenerator(object):
         final.addSpec(steps)
         final.setListConjunct('.')
 
-        return self.realiser.realiseDocument(final).strip()
+        return REALISER.realiseDocument(final).strip()
 
     def change_tone(self, tone):
         """
