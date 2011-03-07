@@ -136,7 +136,8 @@ def main():
     else:
         print "Importing up to %i recipes" % len(filenames)
     widgets = [Percentage(), Bar(), ETA()]
-    progress_bar = ProgressBar(widgets=widgets, maxval=(options.limit)).start()
+    max_to_import = options.limit or len(filenames)
+    progress_bar = ProgressBar(widgets=widgets, maxval=max_to_import).start()
     # Import the recipes
     imported_count = 0
     for filename in filenames:
