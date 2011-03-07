@@ -15,23 +15,13 @@ def get_cuisine(title, description, ingredients, title_weight=10,
     The relative weights of the hits from the title, description, and 
     ingredients are modifiable via arguments 4, 5, and 6 (respectively)
 
-    >>> get_cuisine("Japanese Pork Fried Rice","My Japanese grandmother 
-    ...     gave me this recipe",["Pork","rice","vinegar","cabbage"])
+    >>> get_cuisine("Japanese Pork Fried Rice","My Japanese grandmother gave me this recipe",["Pork","rice","vinegar","cabbage"])
     defaultdict(<type 'int'>, {'Sausage': 1, 'Japanese': 15})
 
-    >>> get_cuisine("Thai Chicken","This recipe was created when we 
-    ... felt like having spicy, Oriental tasting food. It's delicious, 
-    ... and uses bold ingredients such as peanut butter, fresh ginger 
-    ... and sesame oil. Try serving over rice.",["soy sauce", "garlic", 
-    ... "ginger", "chicken", "sesame oil", "peanut butter", "green 
-    ... onions"])
+    >>> get_cuisine("Thai Chicken","This recipe was created when we felt like having spicy, Oriental tasting food. It's delicious, uses bold ingredients such as peanut butter, fresh ginger sesame oil. Try serving over rice.",["soy sauce", "garlic", "ginger", "chicken", "sesame oil", "peanut butter", "green onions"])
     defaultdict(<type 'int'>, {'Thai': 10, 'Indonesian': 1, 'Sausage': 1})
 
-    >>> get_cuisine("Italian Rice Balls","Crispy meatball-sized 
-    ... appetizers with deep fried outsides and moist herb and cheese 
-    ... insides",["water","brown rice","garlic","bay leaf","prosciutto",
-    ... "basil","olive oil","egg whites","Parmesan","bread crumbs",
-    ... "vegetable oil"])
+    >>> get_cuisine("Italian Rice Balls","Crispy meatball-sized appetizers with deep fried outsides and moist herb and cheese insides",["water","brown rice","garlic","bay leaf","prosciutto", "basil","olive oil","egg whites","Parmesan","bread crumbs", "vegetable oil"])
     defaultdict(<type 'int'>, {'Pizza': 2, 'Italian': 11})
 
     """

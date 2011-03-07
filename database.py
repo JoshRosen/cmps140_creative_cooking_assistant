@@ -392,11 +392,13 @@ class Recipe(Base):
         # For now, store only the top cuisine (or multiple cuisines in the
         # event of a tie).  A more robust approach would store cuisines whose
         # scores are in some top percentile.
-        cuisine_criteria = set(w for w in word_tokenize(self.description))
-        cuisine_criteria.union(set(w for w in word_tokenize(self.title)))
+        cuisine_title = self.title
+        cuisine_description = self.description
+        cuisine_ingredients = []
         for ingredient_assoc in self.ingredients:
-            cuisine_criteria.add(ingredient_assoc.ingredient.name)
-        cuisine_scores = get_cuisine(cuisine_criteria)
+            cuisine_ingredients.append(ingredient_assoc.ingredient.name)
+        cuisine_scores = get_cuisine(cuisine_title, 
+            cuisine_description, cuisine_ingredients)
         if not cuisine_scores:
             return []
         max_score = max(cuisine_scores.values())
