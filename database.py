@@ -576,6 +576,19 @@ class OntologyNode(Base):
         return path
 
     @property
+    def tree_diagram(self):
+        """
+        Returns a string containing a printable representation of the subtree
+        rooted at this node.
+        """
+        lines = [self.name]
+        subtypes = list(self.subtypes)
+        subtypes.sort(lambda x, y: cmp(x.name, y.name))
+        for subtype in subtypes:
+            lines.extend("    " + l for l in subtype.tree_diagram.split('\n'))
+        return '\n'.join(lines)
+
+    @property
     def siblings(self):
         """
         An iterable that lists the siblings of this OntologyNode.  An
