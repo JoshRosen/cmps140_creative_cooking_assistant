@@ -1,7 +1,7 @@
 import nltk
 from nltk.corpus import wordnet
 
-from data_structures import ParsedInputMessage
+from nlu.messages.parsed_input_message import ParsedInputMessage
 import utils
 
 class YesNoMessage(ParsedInputMessage):

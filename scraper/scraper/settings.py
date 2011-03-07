@@ -5,10 +5,6 @@
 #
 #     http://doc.scrapy.org/topics/settings.html
 #
-# Or you can copy and paste them from where they're defined in Scrapy:
-# 
-#     scrapy/conf/default_settings.py
-#
 
 BOT_NAME = 'scraper'
 BOT_VERSION = '1.0'
