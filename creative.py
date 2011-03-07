@@ -72,10 +72,15 @@ class UserModel(object):
     # One of the forced greeting speeches is always the start.
     first_greeting = \
         "Welcome to the Creative Cooking Advisor.  Our goal is to based on\n" \
-        + "tastes and preferences provide you with advise on cooking recipes that\n" \
-        + "will suit your wants and needs.  At any time you can say: 'creative on' and\n" \
-        + "you will enable creative mode.  'creative off' will disable it.\n" \
+        + "your tastes and preferences provide you with advise on cooking recipes that\n" \
+        + "will suit your wants and needs.  At any time you can say: 'creative on' or\n" \
+        + "'creative off' to enable or disable my creative functions. \n" \
         + "Are you a new user?\n"
+
+    # response = yes_or_no
+    # if (neither_yes_or_no):
+    #    NLG(tell_him_to_answer_yes_or_no, neutral)
+    #    print("dog %s cat" % string).
 
     greetings = (
         'Insert a list of greetings here.\n'
@@ -189,7 +194,6 @@ class UserModel(object):
         exists.
         """
         self =  cPickle.load(open( "users/" + self.user + ".p")) 
-
 
     def ingredient_suggestions(self):
         pass
