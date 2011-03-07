@@ -7,6 +7,7 @@ from database import Database, DuplicateOntologyNodeException
 from nlu import normalize_ingredient_name
 import os
 import logging
+from optparse import OptionParser
 
 ONTOLOGY_DIR = os.path.join(os.path.dirname(__file__), 'ontology')
 ONTOLOGY_FILENAMES =  os.listdir(ONTOLOGY_DIR)
@@ -17,7 +18,11 @@ def normalize_ontology_name(name):
 
 
 def main():
-    db = Database('sqlite:///test_database.sqlite')
+    parser = OptionParser()
+    parser.add_option("--database", dest="database_url",
+                      default='sqlite:///test_database.sqlite')
+    (options, args) = parser.parse_args()
+    db = Database(options.database_url)
 
     for filename in ONTOLOGY_FILENAMES:
         with open(os.path.join(ONTOLOGY_DIR, filename)) as ontology_file:
