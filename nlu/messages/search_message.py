@@ -130,7 +130,7 @@ class SearchMessage(ParsedInputMessage):
     
     def _parse(self, raw_input_string):
         """
-        Fills out message meta and frame attributes
+        Fills out message meta and frame attributes.
         """
         tokenizer = nltk.WordPunctTokenizer()
         tokenized_string = tokenizer.tokenize(raw_input_string)
@@ -142,7 +142,7 @@ class SearchMessage(ParsedInputMessage):
             self.frame['ingredient'].append({'id': i,
                                              'name': ingredient,
                                              'descriptor': [], # TODO: siblings JJ
-                                             'prefference': 0, # TODO: RB = not or n't
+                                             'preference': 0, # TODO: RB = not or n't
                                              'relationship': 'and', #TODO: Implement
                                              })
         # Meals
@@ -151,7 +151,7 @@ class SearchMessage(ParsedInputMessage):
             self.frame['meal'].append({'id': i,
                                        'name': meal,
                                        'descriptor': [], # TODO: siblings JJ
-                                       'prefference': 0, # TODO: RB = not or n't
+                                       'preference': 0, # TODO: RB = not or n't
                                        'relationship': 'and', #TODO: Implement
                                        })
         # Cuisine
@@ -159,7 +159,7 @@ class SearchMessage(ParsedInputMessage):
             self.frame['cuisine'].append({'id': i,
                                           'name': cuisine,
                                           'descriptor': [], # TODO: siblings JJ
-                                          'prefference': 0, # TODO: RB = not or n't
+                                          'preference': 0, # TODO: RB = not or n't
                                           'relationship': 'and', #TODO: Implement
                                          })
         # Dish
@@ -172,7 +172,7 @@ class SearchMessage(ParsedInputMessage):
             self.frame['dish'].append({'id': i,
                                        'name': dish,
                                        'descriptor': [], # TODO: siblings JJ
-                                       'prefference': 0, # TODO: RB = not or n't
+                                       'preference': 0, # TODO: RB = not or n't
                                        'relationship': 'and', #TODO: Implement
                                        })
         
