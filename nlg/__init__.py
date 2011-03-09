@@ -387,7 +387,7 @@ class NaturalLanguageGenerator(object):
         """
 
         # if the necessary fields do not exist, then throw an exception
-        if not 'clarify_cat' in keywords and not 'clarify_list' in keywords:
+        if 'clarify_cat' not in keywords or 'clarify_list' not in keywords:
             raise NLGException('Not enough information in keywords')
 
         # the first clause gets the user's attention
