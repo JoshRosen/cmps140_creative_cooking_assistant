@@ -8,7 +8,7 @@ from operator import itemgetter
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet
 
-from data_structures import ParsedInputMessage, Message
+from data_structures import Message
 # pylint:disable=E0611
 import wordlists
 from wordlists import units_of_measure, food_adjectives
@@ -206,7 +206,8 @@ class NaturalLanguageUnderstander(object):
     >>> logger = logging.getLogger()
     >>> confidenceThreshold = .5
     >>> nlu = NaturalLanguageUnderstander(confidenceThreshold, logger)
-    
+
+    >>> from nlu.messages.parsed_input_message import ParsedInputMessage
     >>> class EchoMessage(ParsedInputMessage):
     ...     frame = {'echo':None}
     ...     
@@ -234,8 +235,8 @@ class NaturalLanguageUnderstander(object):
     >>> message3 = nlu.parse_input('I like turtles...')
     >>> len(message3)
     1
-    >>> type(message3[0])
-    <class 'nlu.EchoMessage'>
+    >>> isinstance(message3[0], EchoMessage)
+    True
     """
 
     def __init__(self, confidenceThreshold, logger):

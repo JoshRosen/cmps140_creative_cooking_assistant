@@ -10,4 +10,4 @@ class IngredientItem(Item):
     parent = Field()
     name = Field()
     def __repr__(self):
-        return '<IngredientItem: name:\'%s\' parent:\'%s\'>' % (self.name, self.parent)
+        return '<IngredientItem: name:\'%s\' parent:\'%s\'>' % (self['name'], self['parent'])

@@ -1,13 +1,13 @@
 """
 Chatbot application object.
 """
+import cPickle
 import code
 import logging
 from nlg import NaturalLanguageGenerator
 from nlu import NaturalLanguageUnderstander
 from nlu.messages import *
 from dm import DialogueManager
-from data_structures import ParsedInputMessage
 
 # Monkey-patch the Python 2.7 logger.getChild() method into the logger class,
 # to maintain backwards-compatibility with Python 2.6.
@@ -39,6 +39,11 @@ class Chatbot(object):
         >>> db = Database('sqlite:///:memory:')
         >>> bot = Chatbot(db, logging.getLogger())
         >>> response = bot.handle_input("Hi!")
+
+        The Chatbot needs to be pickle-able for the web server to work.
+
+        >>> pickled_bot = cPickle.dumps(bot)
+        >>> bot2 = cPickle.loads(pickled_bot)
         """
         self.enable_debug = enable_debug
         self.db = db

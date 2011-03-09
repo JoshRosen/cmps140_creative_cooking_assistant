@@ -10,9 +10,10 @@ import logging
 import uuid
 import urlparse
 import cPickle
+import gc
 
 from chatbot import Chatbot
-from database import Database
+from database import Database, Base
 
 
 class WebChatServer(object):
@@ -40,7 +41,16 @@ class WebChatServer(object):
         """
         Load the chatbot from the key-value store.
         """
-        return cPickle.loads(self.state_datastore[session_id])
+        bot = cPickle.loads(self.state_datastore[session_id])
+        # This is an ugly hack to magically re-attach detached SQLAlchemy
+        # objects to the database.  It would be more efficient to search this
+        # chatbot's object graph for detached objects rather than using the
+        # garbage collector.
+        objects = gc.get_objects()
+        for obj in objects:
+            if isinstance(obj, Base):
+                self.db._session.add(obj)
+        return bot
 
     def __call__(self, environ, start_response):
         """

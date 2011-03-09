@@ -2,7 +2,7 @@
 Dialogue manager.
 """
 import logging
-from data_structures import ContentPlanMessage
+from nlg import ContentPlanMessage
 from nlu.messages import SearchMessage, YesNoMessage
 
 
@@ -65,36 +65,40 @@ class DialogueManager(object):
                 query['include_cuisines'].append(cuisine_dict['name'])
             self.log.debug('database_query = \n%s' % str(query))
             # Check whether the query specifies no criteria:
+            content_plans = []
+            content_plans.append(ContentPlanMessage('summarize_query',
+                                 query=query))
             if not any(query.values()):
                 content_plan = ContentPlanMessage("echo")
                 content_plan['message'] = "I didn't understand your query."
-                return content_plan
+                content_plans.append(content_plan)
+                return content_plans
             # Search the database and remember the search results.
             self.search_results = self.db.get_recipes(**query)
 
             content_plan = ContentPlanMessage("echo")
             if not self.search_results:
                 content_plan['message'] = "I didn't find any recipes."
+                content_plans.append(content_plan)
             else:
                 content_plan['message'] = \
                     "I found %i recipes.  Would you like to see one?" % \
                     len(self.search_results)
-            return content_plan
+                content_plans.append(content_plan)
+            return content_plans
 
         # If the user answers 'yes', show them the recipes:
         elif isinstance(parsed_input[0], YesNoMessage) and self.search_results:
             if parsed_input[0].getDecision():
-                content_plan = ContentPlanMessage("show_recipe")
-                content_plan['recipe'] = self.search_results[0]
+                return ContentPlanMessage("show_recipe",
+                                          recipe=self.search_results[0])
             else:
-                content_plan = ContentPlanMessage("echo")
-                content_plan['message'] = "Okay.  Let's restart."
+                return ContentPlanMessage("echo",
+                                          message="Okay.  Let's restart.")
             self.search_results = None
             return content_plan
 
         # Handle NLU messages that we don't know how to respond to
         else:
-            content_plan = ContentPlanMessage("echo")
-            content_plan['message'] = \
-                "Ask me about recipes and ingredients!"
-            return content_plan
+            return ContentPlanMessage("echo",
+                message="Ask me about recipes and ingredients!")

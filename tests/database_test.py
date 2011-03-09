@@ -90,6 +90,25 @@ class TestDatabaseQueries(unittest.TestCase):
                ['ingredient', 'vegetable', 'root vegetable', 'yam']
         assert [n.name for n in yam.siblings] == ['potato']
 
+    def test_ontology_depth(self):
+        """
+        Make sure that the ontology's implementation of depth is correct.
+        """
+        for root in self.db.get_ontology_nodes(only_root_nodes=True):
+            assert root.depth == 0
+            for subtype in root.subtypes:
+                assert subtype.depth == 1
+                for subsubtype in subtype.subtypes:
+                    assert subsubtype.depth == 2
+
+    def test_search_deepest_first(self):
+        """
+        Ensure that db.get_ontology_nodes(deepest_first=True) works correctly.
+        """
+        nodes = self.db.get_ontology_nodes(deepest_first=True)
+        depths = [n.depth for n in nodes]
+        sorted_depths = list(reversed(sorted(depths)))
+        assert sorted_depths == depths
 
 class TestDatabaseExceptions(unittest.TestCase):
 
