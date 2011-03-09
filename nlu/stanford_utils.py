@@ -43,7 +43,9 @@ def get_nodes_by_type(parse_tree, node_type):
             yield node
 
 def get_node_string(nodes):
-    if isinstance(nodes, collections.Iterable):
+    if nodes == None:
+        return ''
+    elif isinstance(nodes, collections.Iterable):
         phrase = []
         for node in nodes:
             phrase.append(node.toString())
