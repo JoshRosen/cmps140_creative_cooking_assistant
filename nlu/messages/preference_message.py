@@ -1,7 +1,6 @@
 from nlu.messages.parsed_input_message import ParsedInputMessage
 from nlu.stanford_utils import extract_subject_nodes
 from nlu.stanford_utils import get_node_string
-from nlu.stanford_utils import _iterator_first
 
 
 import nltk

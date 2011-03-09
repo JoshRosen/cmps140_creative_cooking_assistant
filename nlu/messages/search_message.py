@@ -5,7 +5,8 @@ import utils
 import wordlists
 
 from nlu import is_ingredient, normalize_ingredient_name
-
+from nlu.stanford_utils import extract_subject_nodes
+from nlu.stanford_utils import get_node_string
 
 def get_ingredients(tokenized_string, enum=False):
     """
@@ -164,9 +165,9 @@ class SearchMessage(ParsedInputMessage):
         # Dish
         # TODO: Get the subject of the sentence (aka what the verb is reffering to)
         
-        dishesSet = [(i, w[0]) for i,w in enumerate(tagged_string) if w[1]=='NN' and
-                              w[0] not in self.frame['ingredient'] and
-                              w[0] not in self.frame['meal']]
+        dishesSet = [(i, w) for i,w in extract_subject_nodes(tokenized_string, enum=True) if
+                          w not in self.frame['ingredient'] and
+                          w not in self.frame['meal']]
         for i, dish in dishesSet:
             self.frame['dish'].append({'id': i,
                                        'name': dish,

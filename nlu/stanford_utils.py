@@ -55,7 +55,7 @@ def get_node_string(nodes):
         return node.toString()
     
 
-def extract_subject_nodes(tokenized_string, lexical_parser=lexical_parser):
+def extract_subject_nodes(tokenized_string, enum=False, lexical_parser=lexical_parser):
     """
     returns words which are marked as subjects
     
@@ -81,14 +81,22 @@ def extract_subject_nodes(tokenized_string, lexical_parser=lexical_parser):
         if nnsNodes:
             # return the noun node
             for nnsNode in nnsNodes:
-                return nnsNode.firstChild().iterator()
+                nodes = nnsNode.firstChild().iterator()
+                if enum:
+                    return [(tree.indexOf(node), node) for node in nodes]
+                else:
+                    return nodes
         vpNodes = get_nodes_by_type(subjectNode, 'VP')
         for vpNode in vpNodes:
             npNodes = get_nodes_by_type(vpNode, 'NP')
             if npNodes:
                 for npNode in npNodes:
-                    return npNode.getLeaves().iterator()
-        return []
+                    nodes = npNode.getLeaves().iterator()
+                    if enum:
+                        return [(tree.indexOf(node), node) for node in nodes]
+                    else:
+                        return nodes
+    return []
                 
 def extract_sentence_type(tokenized_string, lexical_parser=lexical_parser):
     """
