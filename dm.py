@@ -48,9 +48,7 @@ class DialogueManager(object):
 
         # If we didn't understand the user:
         if not parsed_input:
-            content_plan = ContentPlanMessage("echo")
-            content_plan['message'] = "Could you explain that again?"
-            return content_plan
+            return ContentPlanMessage("unknown")
 
         # For now, take first (highest confidence) message.
         # If the user is  searching for recipes:
@@ -64,6 +62,7 @@ class DialogueManager(object):
             for cuisine_dict in parsed_input[0].frame['cuisine']:
                 query['include_cuisines'].append(cuisine_dict['name'])
             self.log.debug('database_query = \n%s' % str(query))
+
             # Check whether the query specifies no criteria:
             content_plans = []
             content_plans.append(ContentPlanMessage('summarize_query',
