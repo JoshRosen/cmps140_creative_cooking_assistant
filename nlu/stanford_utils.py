@@ -1,4 +1,6 @@
 import os
+import collections
+
 from nlu.nluserver import *
 
 # generate parser
@@ -40,32 +42,62 @@ def get_nodes_by_type(parse_tree, node_type):
         if not node.isLeaf() and node.value() == node_type:
             yield node
 
-def get_node_type(node):
-    return node.toString()
+def get_node_string(nodes):
+    if nodes == None:
+        return ''
+    elif isinstance(nodes, collections.Iterable):
+        phrase = []
+        for node in nodes:
+            phrase.append(node.toString())
+        return ' '.join(phrase)
+    else:
+        node = nodes
+        return node.toString()
     
 
-def extract_subject_nodes(tokenized_string, lexical_parser=lexical_parser):
+def extract_subject_nodes(tokenized_string, enum=False, lexical_parser=lexical_parser):
     """
     returns words which are marked as subjects
     
     >>> import nltk
-    >>> raw_input_string = "I like ripe bannanas."
     >>> tokenizer = nltk.WordPunctTokenizer()
+    >>> raw_input_string = "I like ripe bannanas."
     >>> tokenized_string = tokenizer.tokenize(raw_input_string)
-    >>> for subject_node in extract_subject_nodes(tokenized_string):
-    ...     print get_node_type(subject_node)
+    >>> subject_nodes = extract_subject_nodes(tokenized_string)
+    >>> print get_node_string(subject_nodes)
     bannanas
+    >>> raw_input_string = "I like Japanese food."
+    >>> tokenized_string = tokenizer.tokenize(raw_input_string)
+    >>> subject_nodes = extract_subject_nodes(tokenized_string)
+    >>> print get_node_string(subject_nodes)
+    Japanese food
     """
     tree = get_parse_tree(tokenized_string)
     # find subject node
     subjectNodes = get_nodes_by_type(tree, 'S')
     # find the reffering noun
     for subjectNode in subjectNodes:
-        nounNodes = get_nodes_by_type(subjectNode, 'NNS')
-        # return the noun string
-        for nounNode in nounNodes:
-            yield nounNode.firstChild()
-            
+        nnsNodes = get_nodes_by_type(subjectNode, 'NNS')
+        if nnsNodes:
+            # return the noun node
+            for nnsNode in nnsNodes:
+                nodes = nnsNode.firstChild().iterator()
+                if enum:
+                    return [(tree.indexOf(node), node) for node in nodes]
+                else:
+                    return nodes
+        vpNodes = get_nodes_by_type(subjectNode, 'VP')
+        for vpNode in vpNodes:
+            npNodes = get_nodes_by_type(vpNode, 'NP')
+            if npNodes:
+                for npNode in npNodes:
+                    nodes = npNode.getLeaves().iterator()
+                    if enum:
+                        return [(tree.indexOf(node), node) for node in nodes]
+                    else:
+                        return nodes
+    return []
+                
 def extract_sentence_type(tokenized_string, lexical_parser=lexical_parser):
     """
     >>> import nltk
