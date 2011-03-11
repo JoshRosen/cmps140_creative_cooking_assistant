@@ -2,13 +2,14 @@ import nltk
 from nltk.corpus import wordnet
 
 from nlu.messages.parsed_input_message import ParsedInputMessage
-from nlu.messages.preference_message import extract_close_keywords
+from nlu.messages.utils import extract_close_keywords
+from nlu.messages.utils import get_keyword_confidence
 import utils
 
 class SystemMessage(ParsedInputMessage):
     frame_keys = ['action']
     exit_keywords = ['adieu.n.01', 'bye.n.01', 'farewell.n.02', 'exit.v.01']
-    restart_keywords = ['restart.v.01']
+    restart_keywords = ['restart.v.01', 'reload.v.02']
     keywords = exit_keywords + restart_keywords
                 
     def _parse(self, raw_input_string):
@@ -29,22 +30,9 @@ class SystemMessage(ParsedInputMessage):
          
     @staticmethod
     def confidence(raw_input_string):
-        minDistance = 3
-        bestDistance = float('inf')
-
-        # Find the best keyword synset distance to input string
-        for keyword in SystemMessage.keywords:
-            keywordSyn = wordnet.synset(keyword)
-            for word in raw_input_string.split(' '):
-                for wordSyn in wordnet.synsets(word):
-                    distance = keywordSyn.shortest_path_distance(wordSyn)
-                    if distance != None:
-                        bestDistance = min(bestDistance, distance)
-
-        if bestDistance <= minDistance:
-            return (1-(float(bestDistance)/minDistance)) * .5 + .5
-        else:
-            return 0.0
+        return get_keyword_confidence(raw_input_string,
+                                      SystemMessage.keywords,
+                                      3)
  
     def __repr__(self):
         return '<%s: frame:%s>' % (self.__class__.__name__, self.frame)

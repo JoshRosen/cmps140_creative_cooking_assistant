@@ -7,6 +7,7 @@ import wordlists
 from nlu import is_ingredient, normalize_ingredient_name
 from nlu.stanford_utils import extract_subject_nodes
 from nlu.stanford_utils import get_node_string
+from nlu.messages.utils import extract_words_from_list
 
 def get_ingredients(tokenized_string, enum=False):
     """
@@ -44,7 +45,7 @@ def get_meals(tokenized_string, enum=False):
     
     stemmed_string = utils.stem_words(tokenized_string)
     stemmed_meals = utils.stem_words(wordlists.meal_types)
-    results = _extract_words_from_list(stemmed_meals, stemmed_string, True)
+    results = extract_words_from_list(stemmed_meals, stemmed_string, True)
     if enum:
         return [(i, tokenized_string[i]) for i, w in results]
     else:
@@ -67,24 +68,12 @@ def get_cuisines(tokenized_string, enum=False):
     cuisines = set.difference(wordlists.cuisines, wordlists.meal_types)
     cuisines = cuisines.union(wordlists.list_of_adjectivals)
     stemmed_cuisines = utils.stem_words(cuisines)
-    results = _extract_words_from_list(stemmed_cuisines, stemmed_string, True)
+    results = extract_words_from_list(stemmed_cuisines, stemmed_string, True)
     if enum:
         return [(i, tokenized_string[i]) for i, w in results]
     else:
         return [tokenized_string[i] for i, w in results]
 
-def _extract_words_from_list(word_list, string_list, enum=False):
-    """
-    Returns (index, word) or a list of words for words which occur in both
-    lists.
-    """
-    
-    for i, word in enumerate(string_list):
-        if word in word_list:
-            if enum:
-                yield (i, word)
-            else:
-                yield word
 
 class SearchMessage(ParsedInputMessage):
     """
@@ -134,7 +123,7 @@ class SearchMessage(ParsedInputMessage):
         """
         tokenizer = nltk.WordPunctTokenizer()
         tokenized_string = tokenizer.tokenize(raw_input_string)
-        tagger = utils.combined_taggers
+        tagger = utils.combine_backoff_taggers
         tagged_string = tagger.tag(tokenized_string)
         
         # Ingredients
@@ -165,9 +154,12 @@ class SearchMessage(ParsedInputMessage):
         # Dish
         # TODO: Get the subject of the sentence (aka what the verb is reffering to)
         
-        dishesSet = [(i, w) for i,w in extract_subject_nodes(tokenized_string, enum=True) if
-                          w not in self.frame['ingredient'] and
-                          w not in self.frame['meal']]
+        dishesSet = [(i, n) for i,n in extract_subject_nodes(tokenized_string, enum=True) if
+                          n not in self.frame['ingredient'] and
+                          n not in self.frame['meal']]
+                          
+        #TODO: Set extract_subject_nodes to hanle multiple phrases by splitting on and/or
+        # write a function to parse tree into and/or sub trees
         for i, dish in dishesSet:
             self.frame['dish'].append({'id': i,
                                        'name': dish,
