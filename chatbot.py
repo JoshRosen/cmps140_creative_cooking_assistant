@@ -57,6 +57,7 @@ class Chatbot(object):
         # Register the NLU messages we want
         self.nlu.register_message(YesNoMessage)
         self.nlu.register_message(SearchMessage)
+        self.nlu.register_message(SystemMessage)
 
     def __getstate__(self):
         # When pickling this object, don't pickle the logger object; store its
