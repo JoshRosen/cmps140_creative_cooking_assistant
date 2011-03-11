@@ -118,8 +118,8 @@ Base = declarative_base()
 
 
 recipe_cuisines = Table('recipe_cuisines', Base.metadata,
-    Column('recipe_id', Integer, ForeignKey('recipes.id')),
-    Column('cuisines_id', Integer, ForeignKey('cuisines.id'))
+    Column('_recipe_id', Integer, ForeignKey('recipes.id')),
+    Column('_cuisines_id', Integer, ForeignKey('cuisines.id'))
 )
 
 
@@ -417,10 +417,10 @@ class RecipeIngredientAssociation(Base):
     __tablename__ = 'recipe_ingredient_association'
     # These primary key constraints allow a recipe to list the same ingredient
     # twice, e.g. 'chopped apples' and 'pureed apples' as separate ingredients.
-    recipe_ingredient_association_id = Column(Integer, primary_key=True)
-    recipe_id = Column(Integer, ForeignKey('recipes.id'))
+    _recipe_ingredient_association_id = Column(Integer, primary_key=True)
+    _recipe_id = Column(Integer, ForeignKey('recipes.id'))
     recipe = relationship("Recipe")
-    ingredient_id = Column(Integer, ForeignKey('ingredients.id'))
+    _ingredient_id = Column(Integer, ForeignKey('ingredients.id'))
     ingredient = relationship("Ingredient", backref="ingredient_associations")
     quantity = Column(String)
     unit = Column(String)
@@ -521,7 +521,7 @@ class OntologyNode(Base):
     __tablename__ = 'ontology_nodes'
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    supertype_id = Column(Integer, ForeignKey('ontology_nodes.id'))
+    _supertype_id = Column(Integer, ForeignKey('ontology_nodes.id'))
     subtypes = relationship("OntologyNode", backref=backref('supertype',
         remote_side=id))
     # This depth will break if the node is relocated in the tree.
@@ -531,7 +531,7 @@ class OntologyNode(Base):
     # root nodes must have distinct names.  Recursively, nodes with the same
     # name are different if their supertypes are different.
     __table_args__ = (
-        UniqueConstraint('name', 'supertype_id'),
+        UniqueConstraint('name', '_supertype_id'),
         {}
     )
 
@@ -612,7 +612,7 @@ class Ingredient(Base):
     __tablename__ = 'ingredients'
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)
-    ontology_node_id = Column(Integer, ForeignKey('ontology_nodes.id'))
+    _ontology_node_id = Column(Integer, ForeignKey('ontology_nodes.id'))
     ontology_node = relationship("OntologyNode", backref='ingredients')
 
     def __init__(self, name):
