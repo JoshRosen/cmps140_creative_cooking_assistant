@@ -1,11 +1,11 @@
 """
 Parsing for ingredient lines of recipes.
 """
-import re
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet
 import wordlists
-from wordlists import units_of_measure, food_adjectives
+from ingredient_line_grammar import ingredient_line
+import pyparsing
 
 
 LEMMATIZER = WordNetLemmatizer()
@@ -42,22 +42,6 @@ def is_ingredient(word):
     return word in wordlists.ingredients
 
 
-def is_unit_of_measurement(word):
-    """
-    >>> is_unit_of_measurement('ounces')
-    True
-    """
-    return LEMMATIZER.lemmatize(word) in units_of_measure
-
-
-def is_food_adjective(word):
-    """
-    >>> is_food_adjective("chopped")
-    True
-    """
-    return LEMMATIZER.lemmatize(word) in food_adjectives
-
-
 def normalize_ingredient_name(ingredient_name):
     """
     Normalizes an ingredient name, removing pluralization.
@@ -68,18 +52,6 @@ def normalize_ingredient_name(ingredient_name):
     """
     words = ingredient_name.lower().strip().split()
     return ' '.join(LEMMATIZER.lemmatize(w) for w in words)
-
-
-def tokenize_group_parens(input_string):
-    """
-    Tokenize the input string while treating text in parentheses as a single
-    token.
-
-    >>> tokenize_group_parens("1 (12 ounce) package")
-    ['1', '(12 ounce)', 'package']
-    """
-    regexp = r"\([^)]+\)|[a-zA-Z0-9_,.-]+"
-    return re.findall(regexp, input_string)
 
 
 def extract_ingredient_parts(ingredient_string):
@@ -114,57 +86,24 @@ def extract_ingredient_parts(ingredient_string):
     >>> extract_ingredient_parts('1 1/2') == None
     True
     """
-    parts = {}
-    ingredient_string = ingredient_string.strip()
-    tokens = []
-
-    # Handle units and quantities, if they are present:
-    # Extract the quantity using a regular expression (to handle '1 1/2')
-    match = re.match(r"^([0-9/ -]+)(.*)$", ingredient_string)
-    if match:
-        parts['quantity'] = match.group(1).strip()
-        tokens = tokenize_group_parens(match.group(2))
-        # Extract unit of measurement.  In cases like '1 (12 ounce) package',
-        # '(12 ounce) package' is the unit of measurement.
-        # TODO: Perhaps the unit of measurement should be normalized.
-        unit_tokens = []
-        while tokens and (is_unit_of_measurement(tokens[0]) or \
-            tokens[0].startswith('(')):
-            unit_tokens.append(tokens.pop(0))
-        if unit_tokens:
-            parts['unit'] = ' '.join(unit_tokens)
-    else:
-        tokens = tokenize_group_parens(ingredient_string)
-
-    # Hopefully, the remaining tokens describe the ingredient.  There may be
-    # modifiers, like 'grated cheese'.  To extract the base ingredient, use
-    # WordNet.
-    modifier_tokens = []
-    while tokens and is_food_adjective(tokens[0].strip(',')):
-        modifier_tokens.append(tokens.pop(0))
-    remainder = ' '.join(tokens)
-    # If we've gotten this far and run out of tokens, then the ingredient
-    # string is not well-formed.
-    if not remainder:
+    try:
+        parsed = ingredient_line.parseString(ingredient_string)
+    except pyparsing.ParseException:
         return None
-    # To deal with modifiers that appear AFTER the base ingredient, assume that
-    # they are preceded by a comma.
-    if ',' not in remainder:
-        # No modifiers after base ingredient
-        parts['base_ingredient'] = normalize_ingredient_name(remainder)
-        parts['modifiers'] = ' '.join(modifier_tokens)
-    else:
-        # Modifiers after base ingredient
-        (base_ingredient, post_modifiers) = remainder.split(',', 1)
-        post_modifiers = post_modifiers.strip()
-        if post_modifiers and not modifier_tokens:
-            parts['modifiers'] = post_modifiers
-        else:
-            # If we have modifiers before and after the ingredient, separate
-            # them with a comma.
-            parts['modifiers'] = ', '.join([' '.join(modifier_tokens),
-                post_modifiers])
-        parts['base_ingredient'] = normalize_ingredient_name(base_ingredient)
-    if not parts['modifiers']:
-        del parts['modifiers']
+    parts = {}
+    if 'quantity' in parsed:
+        parts['quantity'] = parsed['quantity'].strip()
+    if 'unit' in parsed:
+        parts['unit'] = parsed['unit'].strip()
+    parts['base_ingredient'] = \
+        normalize_ingredient_name(parsed['base_ingredient'])
+    if 'pre_modifiers' in parsed or 'post_modifiers' in parsed:
+        parts['modifiers'] = ''
+        if 'pre_modifiers' in parsed:
+            parts['modifiers'] = parsed['pre_modifiers'].strip()
+        if 'post_modifiers' in parsed:
+            if 'pre_modifiers' in parsed:
+                parts['modifiers'] += ', ' + parsed['post_modifiers'].strip()
+            else:
+                parts['modifiers'] = parsed['post_modifiers'].strip()
     return parts

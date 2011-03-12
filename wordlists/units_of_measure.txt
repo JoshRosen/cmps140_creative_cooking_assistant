@@ -16,7 +16,6 @@ leaves
 wedge
 loaf
 dash
-clove
 cube
 square
 sheet
@@ -43,3 +42,4 @@ piece
 pkg
 bar
 bulb
+fluid ounce
