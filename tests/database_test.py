@@ -135,3 +135,16 @@ class TestDatabaseExceptions(unittest.TestCase):
         assert db.get_ontology_nodes().count() == 2
         db.add_ontology_node(('ingredient', 'cake'))
         assert db.get_ontology_nodes().count() == 4
+
+    def test_include_and_exclude_fail_on_string_argument(self):
+        db = Database("sqlite:///:memory:")
+        try:
+            db.get_recipes(include_ingredients='apple')
+            assert False  # Should have got an exception
+        except ValueError:
+            pass
+        try:
+            db.get_recipes(exclude_cuisines='Italian')
+            assert False  # Should have got an exception
+        except ValueError:
+            pass

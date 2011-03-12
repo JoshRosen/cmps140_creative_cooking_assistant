@@ -100,6 +100,7 @@ get_recipes() method.
 """
 from collections import defaultdict
 import re
+import types
 
 from sqlalchemy import create_engine, Table, Column, Integer, \
     String, ForeignKey, UniqueConstraint
@@ -288,6 +289,12 @@ class Database(object):
         To find Italian recipes:
         >>> recipes = db.get_recipes(include_cuisines=["Italian"])
         """
+        # Make sure that include_* and exclude_* arguments are not strings:
+        for argument in [include_ingredients, exclude_ingredients,
+            include_cuisines, exclude_cuisines]:
+            if isinstance(argument, types.StringTypes):
+                raise ValueError('include_* and exclude_* must be iterables of'
+                ' strings, not strings.')
         # Normalize ingredient names, so that they match the names stored in
         # the database.
         include_ingredients = \
