@@ -4,7 +4,6 @@ Object-based interface to the database used by the chatbot.
 The database is accessed through the Database object:
 
 >>> db = Database("sqlite:///:memory:")
->>> db.create_database_schema()
 
 (Note: for now, sqlite is the only supported database; support for other
 databases will require adding string length constraints to some of the database
@@ -100,12 +99,15 @@ For the full details on the search capabilities, see the documentation for the
 get_recipes() method.
 """
 from collections import defaultdict
+import re
+import types
 
 from sqlalchemy import create_engine, Table, Column, Integer, \
-    String, ForeignKey
-from sqlalchemy.sql.expression import between
+    String, ForeignKey, UniqueConstraint
+from sqlalchemy.sql.expression import between, desc
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import deferred, relationship, sessionmaker, join
+from sqlalchemy.orm import deferred, relationship, sessionmaker, join, backref
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.interfaces import PoolListener
 
 from nlu import extract_ingredient_parts, normalize_ingredient_name
@@ -117,8 +119,8 @@ Base = declarative_base()
 
 
 recipe_cuisines = Table('recipe_cuisines', Base.metadata,
-    Column('recipe_id', Integer, ForeignKey('recipes.id')),
-    Column('cuisines_id', Integer, ForeignKey('cuisines.id'))
+    Column('_recipe_id', Integer, ForeignKey('recipes.id')),
+    Column('_cuisines_id', Integer, ForeignKey('cuisines.id'))
 )
 
 
@@ -145,6 +147,7 @@ class Database(object):
         self._sessionmaker = sessionmaker(bind=self._engine)
         self._session = self._sessionmaker()
         self.create_database_schema()
+        self._ontology_regex = None # This is cached for performance.
 
     def __getstate__(self):
         # When pickling this object, use the database url as the pickled
@@ -162,6 +165,21 @@ class Database(object):
         """
         Base.metadata.create_all(self._engine)
 
+    # Recipe- and ingredient-related methods
+
+    def _new_ingredient(self, ingredient_name):
+        """
+        Create a new Ingredient object with the given name and link it to the
+        ontology.
+        """
+        ingredient = Ingredient(ingredient_name)
+        # TODO: this will behave incorrectly once we add non-ingredients to the
+        # ontology.  I'll fix this later.
+        ingredient.ontology_node = \
+            self._get_closest_ontology_node(ingredient_name)
+            #print "Matched %s with Ontology %s" % (ingredient_name, ontology_node.name)
+        return ingredient
+
     def add_from_recipe_parts(self, recipe_parts):
         """
         Add a recipe from a dictionary describing the recipe.  The dictionary
@@ -169,6 +187,13 @@ class Database(object):
         extract_recipe_parts function in allrecipes.py.
 
         Raises a DuplicateRecipeException when inserting a duplicate recipe.
+        """
+        self._add_from_recipe_parts(recipe_parts)
+        self._session.commit()
+
+    def _add_from_recipe_parts(self, recipe_parts):
+        """
+        Adds a recipe, but doesn't commit the transaction.
         """
         # First, make sure that we're not inserting a duplicate record.
         # Duplicates are considered to be recipes with the same url.
@@ -199,9 +224,8 @@ class Database(object):
             ingredient = self.get_ingredients(
                 name=ingredient_parts['base_ingredient']).first()
             if not ingredient:
-                ingredient = Ingredient(ingredient_parts['base_ingredient'])
+                ingredient = self._new_ingredient(ingredient_parts['base_ingredient'])
                 self._session.add(ingredient)
-                self._session.flush()
             unit = ingredient_parts['unit']
             quantity = ingredient_parts['quantity']
             modifiers = ingredient_parts['modifiers']
@@ -224,11 +248,9 @@ class Database(object):
             if not cuisine:
                 cuisine = Cuisine(cuisine_name)
                 self._session.add(cuisine)
-                self._session.flush()
             recipe.cuisines.append(cuisine)
 
         self._session.add(recipe)
-        self._session.commit()
 
     def get_recipes(self, include_ingredients=(), exclude_ingredients=(),
                     include_cuisines=(), exclude_cuisines=(),
@@ -255,6 +277,12 @@ class Database(object):
         To find Italian recipes:
         >>> recipes = db.get_recipes(include_cuisines=["Italian"])
         """
+        # Make sure that include_* and exclude_* arguments are not strings:
+        for argument in [include_ingredients, exclude_ingredients,
+            include_cuisines, exclude_cuisines]:
+            if isinstance(argument, types.StringTypes):
+                raise ValueError('include_* and exclude_* must be iterables of'
+                ' strings, not strings.')
         # Normalize ingredient names, so that they match the names stored in
         # the database.
         include_ingredients = \
@@ -320,6 +348,80 @@ class Database(object):
             query = query.filter_by(name=name)
         return query
 
+    # Ontology-related methods
+
+    def _get_closest_ontology_node(self, name):
+        """
+        Find the ontlogy node that is the best match against the input string,
+        or None if no node matches.
+        """
+        # Heuristic: try the longest match first.  If ontology nodes have the
+        # same name, prefer the deeper node.
+        if not self._ontology_regex:
+            nodes = self._session.query(OntologyNode).all()
+            def sort_function(x, y):
+                return cmp(len(y.name), len(x.name)) or cmp(y.depth, x.depth)
+            nodes.sort(sort_function)
+            self._ontology_regex = \
+                re.compile('|'.join('\\b%s\\b' % n.name for n in nodes))
+        match = self._ontology_regex.match(name)
+        if match and match.group(0):
+            node_name = match.group(0)
+            ontology_node = (self._session
+                .query(OntologyNode)
+                .filter_by(name=node_name)
+                .order_by(desc(OntologyNode.depth))).first()
+            #print "Matched %s with Ontology %s" % (name, ontology_node.name)
+            return ontology_node
+        else:
+            return None
+
+    def add_ontology_node(self, ontology_tuple):
+        """
+        Add an ontology node from a tuple representing the path from the new
+        node to a root of a tree in the ontology.
+
+        Raises a DuplicateOntologyNodeException when adding a duplicate node.
+        """
+        root_name = ontology_tuple[0]
+        depth = 0
+        try:
+            root = self._session.query(OntologyNode).filter_by(name=root_name,
+                supertype=None).one()
+        except NoResultFound:
+            root = OntologyNode(root_name)
+            root.depth = 0
+            #self._session.add(OntologyNode)
+        added_nodes = False
+        last_node = root
+        depth = 1
+        for node_name in ontology_tuple[1:]:
+            try:
+                node = self._session.query(OntologyNode).filter_by(
+                    name=node_name, supertype=last_node).one()
+            except NoResultFound:
+                node = OntologyNode(node_name)
+                node.supertype = last_node
+                node.depth = depth
+                depth += 1
+                added_nodes = True
+            last_node = node
+        if added_nodes:
+            self._session.add(last_node)
+            self._session.commit()
+            self._ontology_regex = None  # Expire cached regex due to new node.
+        else:
+            raise DuplicateOntologyNodeException(
+                'OntologyNode %s already exists.' % str(ontology_tuple))
+
+    def get_ontology_node(self, name):
+        """
+        Get the ontology node for the given name.  Rather that performing
+        an exact match with the name, this uses a heuristic to find the
+        best-matching OntologyNode.
+        """
+        return self._get_closest_ontology_node(normalize_ingredient_name(name))
+
 
 class RecipeIngredientAssociation(Base):
     """
@@ -330,10 +432,10 @@ class RecipeIngredientAssociation(Base):
     __tablename__ = 'recipe_ingredient_association'
     # These primary key constraints allow a recipe to list the same ingredient
     # twice, e.g. 'chopped apples' and 'pureed apples' as separate ingredients.
-    recipe_ingredient_association_id = Column(Integer, primary_key=True)
-    recipe_id = Column(Integer, ForeignKey('recipes.id'))
+    _recipe_ingredient_association_id = Column(Integer, primary_key=True)
+    _recipe_id = Column(Integer, ForeignKey('recipes.id'))
     recipe = relationship("Recipe")
-    ingredient_id = Column(Integer, ForeignKey('ingredients.id'))
+    _ingredient_id = Column(Integer, ForeignKey('ingredients.id'))
     ingredient = relationship("Ingredient", backref="ingredient_associations")
     quantity = Column(String)
     unit = Column(String)
@@ -409,6 +511,113 @@ class Recipe(Base):
         return result
 
 
+class OntologyNode(Base):
+    """
+    Represents a node in a tree in the ontology.  Given an OntologyNode, you
+    can explore its relationship to other nodes in the ontology.
+
+    >>> db = Database("sqlite:///:memory:")
+    >>> db.add_ontology_node(('ingredient', 'fruit', 'apple'))
+    >>> db.add_ontology_node(('ingredient', 'fruit', 'orange'))
+    >>> db.add_ontology_node(('ingredient', 'vegetable', 'potato'))
+
+    >>> apple = db.get_ontology_node('apple')
+    >>> apple.is_root()
+    False
+    >>> [s.name for s in apple.siblings]
+    ['orange']
+    >>> apple.is_subtype_of('ingredient')
+    True
+    >>> apple.is_subtype_of('vegetable')
+    False
+    >>> [s.name for s in apple.path_from_root]
+    ['ingredient', 'fruit', 'apple']
+    """
+    __tablename__ = 'ontology_nodes'
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    _supertype_id = Column(Integer, ForeignKey('ontology_nodes.id'))
+    subtypes = relationship("OntologyNode", backref=backref('supertype',
+        remote_side=id))
+    # This depth will break if the node is relocated in the tree.
+    depth = Column(Integer, nullable=False)
+    # Two different OntologyNodes may have the same name if they differ in
+    # path_from_root, hence these uniqueness constraints.  As a base case,
+    # root nodes must have distinct names.  Recursively, nodes with the same
+    # name are different if their supertypes are different.
+    __table_args__ = (
+        UniqueConstraint('name', '_supertype_id'),
+        {}
+    )
+
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return "<OntologyNode(%s)>" % self.name
+
+    def is_subtype_of(self, ontology_node_or_name):
+        """
+        Return True if this OntologyNode is a subtype of the given ontology
+        node or an ontology node with the given name, False otherwise.
+        """
+        # TODO: normalize ingredient type names so this search is less brittle.
+        if isinstance(ontology_node_or_name, OntologyNode):
+            if self == ontology_node_or_name:
+                return True
+        else:
+            if self.name == ontology_node_or_name:
+                return True
+        if not self.supertype:
+            return False
+        else:
+            return self.supertype.is_subtype_of(ontology_node_or_name)
+
+    def is_root(self):
+        """
+        Return True if this OntologyNode is the root of a tree in the ontology.
+        """
+        return self.supertype == None
+
+    @property
+    def path_from_root(self):
+        """
+        A list describing the path from the root of a tree in the ontology to
+        this OntologyNode.
+        """
+        path = [self]
+        node = self.supertype
+        while node:
+            path.insert(0, node)
+            node = node.supertype
+        return path
+
+    @property
+    def tree_diagram(self):
+        """
+        Returns a string containing a printable representation of the subtree
+        rooted at this node.
+        """
+        lines = [self.name]
+        subtypes = list(self.subtypes)
+        subtypes.sort(lambda x, y: cmp(x.name, y.name))
+        for subtype in subtypes:
+            lines.extend("    " + l for l in subtype.tree_diagram.split('\n'))
+        return '\n'.join(lines)
+
+    @property
+    def siblings(self):
+        """
+        An iterable that lists the siblings of this OntologyNode.  An
+        OntologyNode is not considered its own sibling.
+        """
+        supertype = self.supertype
+        if supertype:
+            return set(supertype.subtypes) - set([self])
+        else:
+            return []
+
+
 class Ingredient(Base):
     """
     Represents a single ingredient as the food item itself, not a quantity of a
@@ -418,6 +627,8 @@ class Ingredient(Base):
     __tablename__ = 'ingredients'
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)
+    _ontology_node_id = Column(Integer, ForeignKey('ontology_nodes.id'))
+    ontology_node = relationship("OntologyNode", backref='ingredients')
 
     def __init__(self, name):
         self.name = name
@@ -457,7 +668,14 @@ class DatabaseException(Exception):
 
 class DuplicateRecipeException(DatabaseException):
     """
-    Thrown when trying to insert a duplicate recipe into the database.
+    Thrown when trying to add a duplicate recipe to the database.
+    """
+    pass
+
+
+class DuplicateOntologyNodeException(DatabaseException):
+    """
+    Thrown when trying to add a duplicate ontology node to the database.
     """
     pass
 

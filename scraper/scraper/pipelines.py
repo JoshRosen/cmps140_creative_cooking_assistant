@@ -4,8 +4,8 @@
 # See: http://doc.scrapy.org/topics/item-pipeline.html
 
 from scrapy.xlib.pydispatch import dispatcher
-from scrapy.core import signals
-from scrapy.core.exceptions import DropItem
+from scrapy import signals
+from scrapy.exceptions import DropItem
 from scraper import items
 import re
         
@@ -13,10 +13,10 @@ class DropPipeline(object):
     """
     Drops invalid items.
     """
-    def process_item(self, domain, item):
-        print "PARENT: ", type(item.parent)
-        print "NAME: ", type(item.name)
-        if item.parent == None or item.name == None or item.parent == '' or item.name == '':
+    def process_item(self, item, spider):
+        print "PARENT: ", item['parent']
+        print "NAME: ", item['name']
+        if item['parent'] == None or item['name'] == None or item['parent'] == '' or item['name'] == '':
             raise DropItem("Item has no parent or name.")
         else:
             return item
@@ -25,15 +25,19 @@ class SanitizePipeline(object):
     """
     Cleans up the text in the item fields.
     """
-    def process_item(self, domain, item):
+    def clean(self, string):
+        re.escape(string.lower())
+    
+    def process_item(self, item, spider):
         print "CLEAN: ", item
-        if item.parent == None: raise DropItem("Item has no parent or name.")
-        def clean(string):
-            re.escape(item.parent.lower())
             
-        item.parent = clean(item.parent)
-        item.name = clean(item.name)
-        return item
+        if item['parent']:
+            item['parent'] = self.clean(item['parent'])
+            item['name'] = self.clean(item['name'])
+            return item
+        else:
+            raise DropItem("Item has no parent or name.")
+            return
         
 class ExportPipeline(object):
     """
@@ -46,8 +50,8 @@ class ExportPipeline(object):
     def spider_opened(self, spider):
         self.files={items.IngredientItem: open('ingredients.txt','wa')}
         
-    def process_item(self, domain, item):
-        line = "(%s,%s)\n" % (item.parent, item.name)
+    def process_item(self, item, spider):
+        line = "(%s,%s)\n" % (item['parent'], item['name'])
         self.files[type(item)].writelines([line])
         return item
             

@@ -22,6 +22,7 @@ def main():
     # Configure logging
     logging.basicConfig(filename=options.log_filename, level=logging.DEBUG,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    logging.getLogger('py4j.java_gateway').setLevel(logging.INFO)
     # These imports are performed after the logging setup because basicConfig
     # will not work if other modules call logging functions before it's called.
     from chatbot import Chatbot

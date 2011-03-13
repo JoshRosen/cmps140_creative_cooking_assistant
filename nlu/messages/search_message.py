@@ -1,15 +1,18 @@
-from data_structures import ParsedInputMessage
-import random
+from nlu.messages.parsed_input_message import ParsedInputMessage
 import nltk
 from nltk.corpus import wordnet
 import utils
 import wordlists
 
+from nlu import is_ingredient, normalize_ingredient_name
+from nlu.stanford_utils import extract_subject_nodes
+from nlu.stanford_utils import get_node_string
+
 def get_ingredients(tokenized_string, enum=False):
     """
     Returns a tuple of (index, ingredient) or a list of ingredients from a
     tokenized string.
-    
+
     >>> raw_input_string = "I like apples, cinnamon, and pepper."
     >>> tokenizer = nltk.WordPunctTokenizer()
     >>> tokenized_string = tokenizer.tokenize(raw_input_string)
@@ -18,18 +21,14 @@ def get_ingredients(tokenized_string, enum=False):
     4 cinnamon
     7 pepper
     """
-    
-    stemmed_string = utils.stem_words(tokenized_string)
-    stemmed_ingredients = utils.stem_words(wordlists.ingredients)
-    results = _extract_words_from_list(stemmed_ingredients,
-                                       stemmed_string,
-                                       True)
+    words = [normalize_ingredient_name(x) for x in tokenized_string]
+    results = [x for x in enumerate(words) if is_ingredient(x[1])]
     if enum:
         return [(i, tokenized_string[i]) for i, w in results]
     else:
         return [tokenized_string[i] for i, w in results]
-    
-    
+
+
 def get_meals(tokenized_string, enum=False):
     """
     Returns a tuple of (index, meal) or a list of meals from a
@@ -66,6 +65,7 @@ def get_cuisines(tokenized_string, enum=False):
     
     stemmed_string = utils.stem_words(tokenized_string)
     cuisines = set.difference(wordlists.cuisines, wordlists.meal_types)
+    cuisines = cuisines.union(wordlists.list_of_adjectivals)
     stemmed_cuisines = utils.stem_words(cuisines)
     results = _extract_words_from_list(stemmed_cuisines, stemmed_string, True)
     if enum:
@@ -130,7 +130,7 @@ class SearchMessage(ParsedInputMessage):
     
     def _parse(self, raw_input_string):
         """
-        Fills out message meta and frame attributes
+        Fills out message meta and frame attributes.
         """
         tokenizer = nltk.WordPunctTokenizer()
         tokenized_string = tokenizer.tokenize(raw_input_string)
@@ -142,7 +142,7 @@ class SearchMessage(ParsedInputMessage):
             self.frame['ingredient'].append({'id': i,
                                              'name': ingredient,
                                              'descriptor': [], # TODO: siblings JJ
-                                             'prefference': 0, # TODO: RB = not or n't
+                                             'preference': 0, # TODO: RB = not or n't
                                              'relationship': 'and', #TODO: Implement
                                              })
         # Meals
@@ -151,7 +151,7 @@ class SearchMessage(ParsedInputMessage):
             self.frame['meal'].append({'id': i,
                                        'name': meal,
                                        'descriptor': [], # TODO: siblings JJ
-                                       'prefference': 0, # TODO: RB = not or n't
+                                       'preference': 0, # TODO: RB = not or n't
                                        'relationship': 'and', #TODO: Implement
                                        })
         # Cuisine
@@ -159,20 +159,20 @@ class SearchMessage(ParsedInputMessage):
             self.frame['cuisine'].append({'id': i,
                                           'name': cuisine,
                                           'descriptor': [], # TODO: siblings JJ
-                                          'prefference': 0, # TODO: RB = not or n't
+                                          'preference': 0, # TODO: RB = not or n't
                                           'relationship': 'and', #TODO: Implement
                                          })
         # Dish
         # TODO: Get the subject of the sentence (aka what the verb is reffering to)
         
-        dishesSet = [(i, w[0]) for i,w in enumerate(tagged_string) if w[1]=='NN' and
-                              w[0] not in self.frame['ingredient'] and
-                              w[0] not in self.frame['meal']]
+        dishesSet = [(i, w) for i,w in extract_subject_nodes(tokenized_string, enum=True) if
+                          w not in self.frame['ingredient'] and
+                          w not in self.frame['meal']]
         for i, dish in dishesSet:
             self.frame['dish'].append({'id': i,
                                        'name': dish,
                                        'descriptor': [], # TODO: siblings JJ
-                                       'prefference': 0, # TODO: RB = not or n't
+                                       'preference': 0, # TODO: RB = not or n't
                                        'relationship': 'and', #TODO: Implement
                                        })
         

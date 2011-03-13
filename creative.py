@@ -18,7 +18,7 @@ from types import *
 # will instead try to create dialogue using the snlg.py.
 
 # not sure if I will be using this yet.
-from data_structures import ContentPlanMessage
+from nlg import ContentPlanMessage
 
 class QuestionSet(object):
     def __init__(self):

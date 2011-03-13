@@ -136,7 +136,8 @@ def main():
     else:
         print "Importing up to %i recipes" % len(filenames)
     widgets = [Percentage(), Bar(), ETA()]
-    progress_bar = ProgressBar(widgets=widgets, maxval=(options.limit)).start()
+    max_to_import = options.limit or len(filenames)
+    progress_bar = ProgressBar(widgets=widgets, maxval=max_to_import).start()
     # Import the recipes
     imported_count = 0
     for filename in filenames:
@@ -146,7 +147,7 @@ def main():
         recipe_file = open(filename)
         recipe_parts = extract_recipe_parts(recipe_file)
         try:
-            db.add_from_recipe_parts(recipe_parts)
+            db._add_from_recipe_parts(recipe_parts)
             logging.info("Imported recipe %s from %s" %
                 (recipe_parts['title'], filename))
             imported_count += 1
@@ -157,6 +158,7 @@ def main():
         except DuplicateRecipeException:
             logging.warn("Duplicate recipe in %s; skipping." % filename)
         recipe_file.close()
+    db._session.commit()
     progress_bar.finish()
     print "Imported %i recipes." % imported_count
 

@@ -1,6 +1,7 @@
 """
 Chatbot application object.
 """
+import cPickle
 import code
 import logging
 from nlg import NaturalLanguageGenerator
@@ -8,7 +9,7 @@ from nlu import NaturalLanguageUnderstander
 from nlu.messages import *
 from dm import DialogueManager
 from creative import CreativeManager
-from data_structures import ParsedInputMessage
+from nlu.messages.parsed_input_message import ParsedInputMessage
 
 # Monkey-patch the Python 2.7 logger.getChild() method into the logger class,
 # to maintain backwards-compatibility with Python 2.6.
@@ -41,6 +42,10 @@ class Chatbot(object):
         >>> bot = Chatbot(db, logging.getLogger())
         >>> response = bot.handle_input("Hi!")
 
+        The Chatbot needs to be pickle-able for the web server to work.
+
+        >>> pickled_bot = cPickle.dumps(bot)
+        >>> bot2 = cPickle.loads(pickled_bot)
         """
         self.prompt = '-> '
         self.creative_mode = False          # enables creative mode, temporarilly.
@@ -61,6 +66,7 @@ class Chatbot(object):
         # Register the NLU messages we want
         self.nlu.register_message(YesNoMessage)
         self.nlu.register_message(SearchMessage)
+        self.nlu.register_message(SystemMessage)
 
     def __getstate__(self):
         # When pickling this object, don't pickle the logger object; store its
