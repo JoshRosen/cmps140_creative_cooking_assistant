@@ -36,11 +36,32 @@ def get_parse_tree(tokenized_string, lexical_parser=lexical_parser):
 
 def get_nodes_by_type(parse_tree, node_type):
     """
-    returns a tree tagged as a particular type
+    returns a tree tagged as a particular type.
     """
     for node in parse_tree.iterator():
         if not node.isLeaf() and node.value() == node_type:
             yield node
+            
+def get_parents_by_type(parse_tree, node, node_type):
+    """
+    returns a tree tagged as a particular type.
+    """
+    while node.parent(parse_tree) != None:
+        node = node.parent(parse_tree)
+        if not node.isLeaf() and node.value() == node_type:
+            yield node
+            
+def get_children_by_type(node, node_type):
+    """
+    returns a tree tagged as a particular type.
+    """
+    found = set()
+    for node in node.children():
+        if not node.isLeaf() and node.value() == node_type:
+            found.add(node)
+        else:
+            found.union(get_children_by_type(node, node_type))
+    return found
 
 def get_node_string(nodes):
     if nodes == None:
@@ -104,6 +125,7 @@ def extract_sentence_type(tokenized_string, lexical_parser=lexical_parser):
     >>> raw_input_string = "What can I make with carrots?"
     >>> tokenizer = nltk.WordPunctTokenizer()
     >>> tokenized_string = tokenizer.tokenize(raw_input_string)
+    >>> tree = get_parse_tree(tokenized_string)
     >>> print extract_sentence_type(tokenized_string)
     ('question', u'What')
     """
@@ -116,6 +138,30 @@ def extract_sentence_type(tokenized_string, lexical_parser=lexical_parser):
         if question_node: # sentence is a question
             return ('question', question_node.getLeaves()[0].value())
     return (None,None)
+    
+def is_in_conjunct(parse_tree, node):
+    """
+    Checks all parent NP's for 'and' CC children.
+    """
+    parentNPs = get_parents_by_type(parse_tree, node, 'NP')
+    for parentNP in parentNPs:
+        children = get_children_by_type(parentNP, 'CC')
+        for child in children:
+            if 'and' in child.toString():
+                return True
+        return False
+            
+def is_in_disjunct(parse_tree, node):
+    """
+    Checks all parent NP's for 'or' CC children.
+    """
+    parentNPs = get_parents_by_type(parse_tree, node, 'NP')
+    for parentNP in parentNPs:
+        children = get_children_by_type(parentNP, 'CC')
+        for child in children:
+            if 'or' in child.toString():
+                return True
+        return False
     
 def extract_word_modifiers(tokenized_string):
     pass
