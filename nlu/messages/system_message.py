@@ -2,8 +2,8 @@ import nltk
 from nltk.corpus import wordnet
 
 from nlu.messages.parsed_input_message import ParsedInputMessage
-from nlu.messages.utils import extract_close_keywords
-from nlu.messages.utils import get_keyword_confidence
+from nlu.messages.msgutils import extract_close_keywords
+from nlu.messages.msgutils import get_keyword_confidence
 import utils
 
 class SystemMessage(ParsedInputMessage):

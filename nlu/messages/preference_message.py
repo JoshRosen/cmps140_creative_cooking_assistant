@@ -1,8 +1,8 @@
 from nlu.messages.parsed_input_message import ParsedInputMessage
 from nlu.stanford_utils import extract_subject_nodes
 from nlu.stanford_utils import get_node_string
-from nlu.messages.utils import get_keyword_confidence
-from nlu.messages.utils import extract_close_keywords
+from nlu.messages.msgutils import get_keyword_confidence
+from nlu.messages.msgutils import extract_close_keywords
 
 
 import nltk

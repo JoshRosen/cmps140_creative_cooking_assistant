@@ -1,38 +1,52 @@
 import nltk
 from nltk.corpus import wordnet
 
-from nlu.stanford_utils import is_in_conjunct
-from nlu.stanford_utils import is_in_disjunct
 from nlu.stanford_utils import get_parse_tree
+from nlu.stanford_utils import extract_junction_node
+from nlu.stanford_utils import get_node_string
+from nlu.stanford_utils import extract_subject_nodes
 
-def is_word_in_conjunct(parse_tree, word):
+def extract_subjects(parse_tree, enum=True):
+    for node in extract_subject_nodes(parse_tree):
+        word = get_node_string(node)
+        if enum:
+            yield (parse_tree.indexOf(node), word)
+        else:
+            yield word
+
+def extract_junction(parse_tree, word):
     """
-    >>> import nltk
-    >>> raw_input_string = "What can I make with carrots and children?"
-    >>> tokenizer = nltk.WordPunctTokenizer()
-    >>> tokenized_string = tokenizer.tokenize(raw_input_string)
-    >>> tree = get_parse_tree(tokenized_string)
-    >>> print is_word_in_conjunct(tree, 'children')
-    True
-    """
-    for node in parse_tree.getLeaves():
-        if node.value() == word:
-            return is_in_conjunct(parse_tree, node)
-    return None
+    Returns either 'and' or 'or'. Defaults to 'and' if junction cannot be
+    determined.
     
-def is_word_in_disjunct(parse_tree, word):
-    """
     >>> import nltk
-    >>> raw_input_string = "What can I make with carrots or children and cellary?"
+    >>> raw_input_string = "What can I make with carrots and children or celery?"
     >>> tokenizer = nltk.WordPunctTokenizer()
     >>> tokenized_string = tokenizer.tokenize(raw_input_string)
     >>> tree = get_parse_tree(tokenized_string)
-    >>> print is_word_in_disjunct(tree, 'carrots')
+    >>> extract_junction(tree, 'carrots')
+    'and'
+    >>> extract_junction(tree, 'children')
+    'and'
+    >>> extract_junction(tree, 'celery')
+    'or'
+    >>> extract_junction(tree, 'rats') == None
     True
     """
+    # locate the word node
     for node in parse_tree.getLeaves():
         if node.value() == word:
-            return is_in_disjunct(parse_tree, node)
+            # extract the junction node
+            node = extract_junction_node(parse_tree, node)
+            # return the node junction type
+            if node:
+                nodeString = get_node_string(node)
+                if 'and' in nodeString:
+                    return 'and'
+                elif 'or' in nodeString:
+                    return 'or'
+            else:
+                return 'and'
     return None
     
 def extract_close_keywords(keywords, tokenized_string, minDistance):
