@@ -4,7 +4,7 @@ Tests for the database.  Run with py.test.
 import unittest
 
 from database import Database, DuplicateRecipeException, \
-    DuplicateOntologyNodeException
+    DuplicateOntologyNodeException, OntologyNode
 
 
 class TestDatabaseQueries(unittest.TestCase):
@@ -70,10 +70,10 @@ class TestDatabaseQueries(unittest.TestCase):
         Test methods for navigating the ontology.
         """
         # The test database should only contain 7 IngredientNodes:
-        assert self.db.get_ontology_nodes().count() == 7
+        assert self.db._session.query(OntologyNode).count() == 7
         # Test roots nodes:
-        ingredient_root = self.db.get_ontology_nodes('ingredient',
-            only_root_nodes=True).one()
+        ingredient_root = \
+            self.db._session.query(OntologyNode).filter_by(name='ingredient').one()
         assert ingredient_root.supertype == None
         assert ingredient_root.is_root()
         assert ingredient_root.is_subtype_of(ingredient_root)
@@ -83,7 +83,7 @@ class TestDatabaseQueries(unittest.TestCase):
         assert 'vegetable' in ingredient_subtype_names
         assert 'fruit' in ingredient_subtype_names
         # Test non-root nodes:
-        yam = self.db.get_ontology_nodes('yam').one()
+        yam = self.db._session.query(OntologyNode).filter_by(name='yam').one()
         assert yam.supertype.name == 'root vegetable'
         assert not yam.is_subtype_of('fruit')
         assert [n.name for n in yam.path_from_root] == \
@@ -94,21 +94,13 @@ class TestDatabaseQueries(unittest.TestCase):
         """
         Make sure that the ontology's implementation of depth is correct.
         """
-        for root in self.db.get_ontology_nodes(only_root_nodes=True):
+        for root in (self.db._session
+            .query(OntologyNode).filter_by(supertype=None)):
             assert root.depth == 0
             for subtype in root.subtypes:
                 assert subtype.depth == 1
                 for subsubtype in subtype.subtypes:
                     assert subsubtype.depth == 2
-
-    def test_search_deepest_first(self):
-        """
-        Ensure that db.get_ontology_nodes(deepest_first=True) works correctly.
-        """
-        nodes = self.db.get_ontology_nodes(deepest_first=True)
-        depths = [n.depth for n in nodes]
-        sorted_depths = list(reversed(sorted(depths)))
-        assert sorted_depths == depths
 
 class TestDatabaseExceptions(unittest.TestCase):
 
@@ -125,16 +117,16 @@ class TestDatabaseExceptions(unittest.TestCase):
 
     def test_add_duplicate_ontology_nodes(self):
         db = Database("sqlite:///:memory:")
-        assert db.get_ontology_nodes().count() == 0
+        assert db._session.query(OntologyNode).count() == 0
         db.add_ontology_node(('dish', 'cake'))
         try:
             db.add_ontology_node(('dish', 'cake'))
             assert False  # Should have got an exception
         except DuplicateOntologyNodeException:
             pass
-        assert db.get_ontology_nodes().count() == 2
+        assert db._session.query(OntologyNode).count() == 2
         db.add_ontology_node(('ingredient', 'cake'))
-        assert db.get_ontology_nodes().count() == 4
+        assert db._session.query(OntologyNode).count() == 4
 
     def test_include_and_exclude_fail_on_string_argument(self):
         db = Database("sqlite:///:memory:")

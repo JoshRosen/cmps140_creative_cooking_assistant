@@ -175,20 +175,8 @@ class Database(object):
         ingredient = Ingredient(ingredient_name)
         # TODO: this will behave incorrectly once we add non-ingredients to the
         # ontology.  I'll fix this later.
-        # Heuristic: try the longest match first.  If ontology nodes have the
-        # same name, prefer the deper node.
-        if not self._ontology_regex:
-            nodes = self.get_ontology_nodes().all()
-            def sort_function(x, y):
-                return cmp(len(y.name), len(x.name)) or cmp(y.depth, x.depth)
-            nodes.sort(sort_function)
-            self._ontology_regex = \
-                re.compile('|'.join('\\b%s\\b' % n.name for n in nodes))
-        match = self._ontology_regex.match(ingredient_name)
-        if match and match.group(0):
-            node_name = match.group(0)
-            ontology_node = self.get_ontology_nodes(node_name, deepest_first=True).first()
-            ingredient.ontology_node = ontology_node
+        ingredient.ontology_node = \
+            self._get_closest_ontology_node(ingredient_name)
             #print "Matched %s with Ontology %s" % (ingredient_name, ontology_node.name)
         return ingredient
 
@@ -362,6 +350,32 @@ class Database(object):
 
     # Ontology-related methods
 
+    def _get_closest_ontology_node(self, name):
+        """
+        Find the ontlogy node that is the best match against the input string,
+        or None if no node matches.
+        """
+        # Heuristic: try the longest match first.  If ontology nodes have the
+        # same name, prefer the deeper node.
+        if not self._ontology_regex:
+            nodes = self._session.query(OntologyNode).all()
+            def sort_function(x, y):
+                return cmp(len(y.name), len(x.name)) or cmp(y.depth, x.depth)
+            nodes.sort(sort_function)
+            self._ontology_regex = \
+                re.compile('|'.join('\\b%s\\b' % n.name for n in nodes))
+        match = self._ontology_regex.match(name)
+        if match and match.group(0):
+            node_name = match.group(0)
+            ontology_node = (self._session
+                .query(OntologyNode)
+                .filter_by(name=node_name)
+                .order_by(desc(OntologyNode.depth))).first()
+            #print "Matched %s with Ontology %s" % (name, ontology_node.name)
+            return ontology_node
+        else:
+            return None
+
     def add_ontology_node(self, ontology_tuple):
         """
         Add an ontology node from a tuple representing the path from the new
@@ -400,19 +414,13 @@ class Database(object):
             raise DuplicateOntologyNodeException(
                 'OntologyNode %s already exists.' % str(ontology_tuple))
 
-    def get_ontology_nodes(self, name=None, only_root_nodes=False,
-        deepest_first=False):
+    def get_ontology_node(self, name):
         """
-        Get ontology nodes matching the given criteria.
+        Get the ontology node for the given name.  Rather that performing
+        an exact match with the name, this uses a heuristic to find the
+        best-matching OntologyNode.
         """
-        query = self._session.query(OntologyNode)
-        if name != None:
-            query = query.filter_by(name=name)
-        if only_root_nodes:
-            query = query.filter_by(supertype=None)
-        if deepest_first:
-            query = query.order_by(desc(OntologyNode.depth))
-        return query
+        return self._get_closest_ontology_node(normalize_ingredient_name(name))
 
 
 class RecipeIngredientAssociation(Base):
@@ -513,7 +521,7 @@ class OntologyNode(Base):
     >>> db.add_ontology_node(('ingredient', 'fruit', 'orange'))
     >>> db.add_ontology_node(('ingredient', 'vegetable', 'potato'))
 
-    >>> apple = db.get_ontology_nodes('apple').one()
+    >>> apple = db.get_ontology_node('apple')
     >>> apple.is_root()
     False
     >>> [s.name for s in apple.siblings]
