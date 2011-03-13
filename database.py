@@ -364,7 +364,7 @@ class Database(object):
             nodes.sort(sort_function)
             self._ontology_regex = \
                 re.compile('|'.join('\\b%s\\b' % n.name for n in nodes))
-        match = self._ontology_regex.match(name)
+        match = self._ontology_regex.search(name)
         if match and match.group(0):
             node_name = match.group(0)
             ontology_node = (self._session

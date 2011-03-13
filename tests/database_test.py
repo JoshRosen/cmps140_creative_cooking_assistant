@@ -90,6 +90,17 @@ class TestDatabaseQueries(unittest.TestCase):
                ['ingredient', 'vegetable', 'root vegetable', 'yam']
         assert [n.name for n in yam.siblings] == ['potato']
 
+    def test_get_ontology_node(self):
+        """
+        Tests for db.get_ontology_node().
+        """
+        node = self.db.get_ontology_node('ingredient')
+        assert node.name == 'ingredient'
+        node = self.db.get_ontology_node('   ingredient    ')
+        assert node.name == 'ingredient'
+        node = self.db.get_ontology_node('   fresh   vegetable    ')
+        assert node.name == 'vegetable'
+
     def test_ontology_depth(self):
         """
         Make sure that the ontology's implementation of depth is correct.
