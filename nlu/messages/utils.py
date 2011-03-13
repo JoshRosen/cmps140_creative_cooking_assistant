@@ -35,8 +35,6 @@ def is_word_in_disjunct(parse_tree, word):
             return is_in_disjunct(parse_tree, node)
     return None
     
-
-
 def extract_close_keywords(keywords, tokenized_string, minDistance):
     """
     >>> raw_input_string = 'I like fish.'
