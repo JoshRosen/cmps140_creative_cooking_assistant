@@ -87,19 +87,6 @@ class NaturalLanguageUnderstander(object):
         # set confidence threshold
         self.confidenceThreshold = confidenceThreshold
 
-    def __getstate__(self):
-        # When pickling this object, don't pickle the logger object; store its
-        # name instead.
-        result = self.__dict__.copy()
-        result['log'] = self.log.name
-        return result
-
-    def __setstate__(self, state):
-        # When unpickling this object, get a logger whose name was stored in
-        # the pickle.
-        self.__dict__ = state
-        self.log = logging.getLogger(self.log)
-
     def parse_input(self, user_input):
         """
         Given a string of user input, return a ParsedInputMessage.

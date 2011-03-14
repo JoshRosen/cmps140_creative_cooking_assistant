@@ -149,16 +149,6 @@ class Database(object):
         self.create_database_schema()
         self._ontology_match_order = None  # This is cached for performance.
 
-    def __getstate__(self):
-        # When pickling this object, use the database url as the pickled
-        # representation.
-        return self._database_url
-
-    def __setstate__(self, database_url):
-        # When unpickling this object, connect to the database_url stored
-        # during pickling.
-        self.__init__(database_url)
-
     def create_database_schema(self):
         """
         If necessary, creates the tables in the database.

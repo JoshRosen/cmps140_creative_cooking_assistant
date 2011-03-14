@@ -46,9 +46,6 @@ from simplenlg import NPPhraseSpec, PPPhraseSpec, SPhraseSpec, Realiser, \
 
 HORIZONTAL_LINE = '-' * 70
 
-# The realiser can't be stored in a NaturalLanguageGenerator instance variable
-# because Py4J can't pickle Java objects, which prevents the web server from
-# functioning.
 REALISER = Realiser()
 
 
@@ -142,19 +139,6 @@ class NaturalLanguageGenerator(object):
 
         self.log = logger
         self.log.info('NLG creation successful')
-
-    def __getstate__(self):
-        # When pickling this object, don't pickle the logger object; store its
-        # name instead.
-        result = self.__dict__.copy()
-        result['log'] = self.log.name
-        return result
-
-    def __setstate__(self, state):
-        # When unpickling this object, get a logger whose name was stored in
-        # the pickle.
-        self.__dict__ = state  # pylint: disable=W0201
-        self.log = logging.getLogger(self.log)
 
     def generate_response(self, content_plan_or_plans):
         """
