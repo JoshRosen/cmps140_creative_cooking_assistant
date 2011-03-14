@@ -339,7 +339,6 @@ class Database(object):
         return query
 
     # Ontology-related methods
-
     def _get_closest_ontology_node(self, name):
         """
         Find the ontlogy node that is the best match against the input string,
@@ -363,7 +362,9 @@ class Database(object):
             nodes = ingredient_nodes + cuisine_nodes
             self._ontology_match_order = nodes
         for node in self._ontology_match_order:
-            if re.search(r"\b" + node.name + r"\b", name):
+            s = name.find(node.name)  # first character of match
+            e = s + len(node.name) - 1  # second character of match
+            if s != -1 and (s == 0 or name[s-1] == ' ') and (e == len(name)-1 or name[e+1] == ' '):
                 # Check if the nodes with the same name appear as both cuisines
                 # and ingredients, and apply the tiebreaking rules: Cuisines
                 # take precedence over ingredients if and only if the cuisine

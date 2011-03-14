@@ -114,6 +114,9 @@ class TestDatabaseQueries(unittest.TestCase):
         node = self.db.get_ontology_node('   vegetable    ')
         assert node.name == 'vegetable'
         assert node.supertype.name == 'cuisine'
+        # Check that substrings do not trigger false positives
+        node = self.db.get_ontology_node('  XvegetableX ')
+        assert node == None
 
     def test_ontology_depth(self):
         """
