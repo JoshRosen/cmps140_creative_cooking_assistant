@@ -95,15 +95,25 @@ class TestDatabaseQueries(unittest.TestCase):
         """
         Tests for db.get_ontology_node().
         """
+        # Whitespace should not matter:
         node = self.db.get_ontology_node('ingredient')
         assert node.name == 'ingredient'
         node = self.db.get_ontology_node('   ingredient    ')
         assert node.name == 'ingredient'
+        # Pluralization and capitalization should not matter:
+        node = self.db.get_ontology_node('   Cuisines ')
+        assert node.name == 'cuisine'
+        # If a word is both a cuisine and an ingredient (like 'vegetable' in
+        # this example ontology), then the ingredient should take precedence if
+        # there are other words in the input (like 'fresh') and the cuisine
+        # should take precedence if it is the only word in the input:
         node = self.db.get_ontology_node('   fresh   vegetable    ')
         assert node.name == 'vegetable'
         assert node.supertype.name == 'ingredient'
-        node = self.db.get_ontology_node('   cuisines ')
-        assert node.name == 'cuisine'
+        # Here, cuisine should take precedence.
+        node = self.db.get_ontology_node('   vegetable    ')
+        assert node.name == 'vegetable'
+        assert node.supertype.name == 'cuisine'
 
     def test_ontology_depth(self):
         """
