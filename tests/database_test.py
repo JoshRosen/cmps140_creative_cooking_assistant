@@ -35,7 +35,8 @@ class TestDatabaseQueries(unittest.TestCase):
         ontology_tuples = [
             ('ingredient', 'vegetable', 'root vegetable', 'potato'),
             ('ingredient', 'vegetable', 'root vegetable', 'yam'),
-            ('ingredient', 'fruit', 'apple')
+            ('ingredient', 'fruit', 'apple'),
+            ('cuisine', 'vegetable')
         ]
         for tup in ontology_tuples:
             self.db.add_ontology_node(tup)
@@ -70,7 +71,7 @@ class TestDatabaseQueries(unittest.TestCase):
         Test methods for navigating the ontology.
         """
         # The test database should only contain 7 IngredientNodes:
-        assert self.db._session.query(OntologyNode).count() == 7
+        assert self.db._session.query(OntologyNode).count() == 9
         # Test roots nodes:
         ingredient_root = \
             self.db._session.query(OntologyNode).filter_by(name='ingredient').one()
@@ -100,6 +101,9 @@ class TestDatabaseQueries(unittest.TestCase):
         assert node.name == 'ingredient'
         node = self.db.get_ontology_node('   fresh   vegetable    ')
         assert node.name == 'vegetable'
+        assert node.supertype.name == 'ingredient'
+        node = self.db.get_ontology_node('   cuisines ')
+        assert node.name == 'cuisine'
 
     def test_ontology_depth(self):
         """

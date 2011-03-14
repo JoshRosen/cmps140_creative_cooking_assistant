@@ -101,6 +101,7 @@ get_recipes() method.
 from collections import defaultdict
 import re
 import types
+from itertools import chain
 
 from sqlalchemy import create_engine, Table, Column, Integer, \
     String, ForeignKey, UniqueConstraint
@@ -355,13 +356,21 @@ class Database(object):
         Find the ontlogy node that is the best match against the input string,
         or None if no node matches.
         """
-        # Heuristic: try the longest match first.  If ontology nodes have the
-        # same name, prefer the deeper node.
+        # Heuristic: try to match ingredients before cuisines.  Try the longest
+        # match first.  If ontology nodes have the same name, prefer the
+        # deeper node.
         if not self._ontology_regex:
-            nodes = self._session.query(OntologyNode).all()
+            all_nodes = self._session.query(OntologyNode).all()
+            # This is very inefficient:
+            ingredient_nodes = \
+                [n for n in all_nodes if n.path_from_root[0].name == 'ingredient']
+            cuisine_nodes = \
+                [n for n in all_nodes if n.path_from_root[0].name == 'cuisine']
             def sort_function(x, y):
                 return cmp(len(y.name), len(x.name)) or cmp(y.depth, x.depth)
-            nodes.sort(sort_function)
+            ingredient_nodes.sort(sort_function)
+            cuisine_nodes.sort(sort_function)
+            nodes = chain(ingredient_nodes, cuisine_nodes)
             self._ontology_regex = \
                 re.compile('|'.join('\\b%s\\b' % n.name for n in nodes))
         match = self._ontology_regex.search(name)
