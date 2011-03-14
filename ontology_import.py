@@ -27,6 +27,9 @@ def main():
     for filename in ONTOLOGY_FILENAMES:
         with open(os.path.join(ONTOLOGY_DIR, filename)) as ontology_file:
             for line in ontology_file:
+                if line.strip()[0] == '#':
+                    logging.warn("Skipping comment: '%s'" % line.strip())
+                    continue
                 node = eval(line)
                 node = [normalize_ontology_name(x) for x in node]
                 try:
