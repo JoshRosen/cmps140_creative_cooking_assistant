@@ -191,6 +191,10 @@ class NaturalLanguageGenerator(object):
                 self.acknowledge(),
                 self.generate_recipe(content_plan['recipe'])
             ])
+        elif content_plan.msg_type == "specify_recipe":
+            return self.specify_recipe(content_plan)
+        elif content_plan.msg_type == "related_search":
+            return self.search_related(content_plan)
         elif content_plan.msg_type == "summarize_query":
             return self.summarize_query(content_plan['query'])
         elif content_plan.msg_type == "clarify":
@@ -203,6 +207,12 @@ class NaturalLanguageGenerator(object):
             return self.decline()
         elif content_plan.msg_type == "unknown":
             return self.unknown()
+        elif content_plan.msg_type == "goodbye":
+            return self.goodbye()
+        elif content_plan.msg_type == "advise":
+            return self.advise()
+        elif content_plan.msg_type == "search_fail":
+            return self.search_fail({})
         else:
             self.log.error("Don't know how to handle msg_type '%s'" %
                 content_plan.msg_type)
@@ -530,8 +540,7 @@ class NaturalLanguageGenerator(object):
         Returns an utterance that informs the user that the search did not
         return any viable results.
         """
-
-        pass
+        return "TODO: search_fail is not implemented yet."
 
     def search_related(self, keywords):
         """
@@ -540,7 +549,7 @@ class NaturalLanguageGenerator(object):
 
         if 'related_items' not in keywords:
             raise NLGException('search_related: related_items key not present')
-        pass
+        return "TODO: search_related is not implemented yet."
 
     def advise(self):
         """
@@ -587,6 +596,7 @@ class NaturalLanguageGenerator(object):
         parts = string.split('\n')
         return ' '.join(parts)
 
+
 class NLGException(Exception):
     """
     Base class for exceptions related to the NLG
@@ -600,16 +610,29 @@ def demo():
 
     >>> demo_output = demo()  # Make sure that the demo doesn't crash.
     """
+    # Simple mock recipe for testing specify_recipe.
+    class Mock(object):
+        pass
+    mock_recipe = Mock()
+    mock_recipe.title = "Chocolate Chip Cookies"
+    mock_recipe.author = "Grandma"
+
     messages = [
         ContentPlanMessage('echo', message="Hello World"),
         ContentPlanMessage('summarize_query',
             query={'include_ingredients': ['egg']}),
         ContentPlanMessage('clarify', clarify_cat='ingredient',
             clarify_list=['chicken', 'beef', 'pork']),
+        ContentPlanMessage('specify_recipe', recipes=[mock_recipe]),
+        ContentPlanMessage('related_search',
+            related_items=['chicken', 'beef', 'pork']),
         ContentPlanMessage('acknowledge'),
         ContentPlanMessage('affirm'),
         ContentPlanMessage('decline'),
-        ContentPlanMessage('unknown')
+        ContentPlanMessage('unknown'),
+        ContentPlanMessage('goodbye'),
+        ContentPlanMessage('advise'),
+        ContentPlanMessage('search_fail'),
     ]
     nlg = NaturalLanguageGenerator(logging.getLogger())
     return nlg.generate_response(messages)
