@@ -1,30 +1,12 @@
 from nlu.messages.parsed_input_message import ParsedInputMessage
 from nlu.stanford_utils import extract_subject_nodes
 from nlu.stanford_utils import get_node_string
+from nlu.messages.msgutils import get_keyword_confidence
+from nlu.messages.msgutils import extract_close_keywords
 
 
 import nltk
 from nltk.corpus import wordnet
-
-def extract_close_keywords(keywords, tokenized_string, minDistance):
-    """
-    >>> raw_input_string = 'I like fish.'
-    >>> tokenizer = nltk.WordPunctTokenizer()
-    >>> tokenized_string = tokenizer.tokenize(raw_input_string)
-    >>> keywords = ['like.v.05']
-    >>> extract_close_keywords(keywords, tokenized_string, 2)
-    ['like']
-    """
-    closeWords = []
-    for keyword in keywords:
-        keywordSyn = wordnet.synset(keyword)
-        for word in tokenized_string:
-            for wordSyn in wordnet.synsets(word):
-                distance = keywordSyn.shortest_path_distance(wordSyn)
-                if distance != None and distance <= minDistance:
-                    closeWords.append(word)
-                    break
-    return closeWords
 
 class PreferenceMessage(ParsedInputMessage):
     """
@@ -49,25 +31,9 @@ class PreferenceMessage(ParsedInputMessage):
     
     @staticmethod
     def confidence(raw_input_string):
-        minDistance = 3
-        bestDistance = float('inf')
-        
-        tokenizer = nltk.WordPunctTokenizer()
-        tokenized_string = tokenizer.tokenize(raw_input_string)
-        
-        # Find the best keyword synset distance to input string
-        for keyword in PreferenceMessage.keywords:
-            keywordSyn = wordnet.synset(keyword)
-            for word in tokenized_string:
-                for wordSyn in wordnet.synsets(word):
-                    distance = keywordSyn.shortest_path_distance(wordSyn)
-                    if distance != None:
-                        bestDistance = min(bestDistance, distance)
-                    
-        if bestDistance <= minDistance:
-            return (1-(float(bestDistance)/minDistance)) * .5 + .5
-        else:
-            return 0.0
+        return get_keyword_confidence(raw_input_string,
+                                      PreferenceMessage.keywords,
+                                      3)
         
     def _parse(self, raw_input_string):
         """

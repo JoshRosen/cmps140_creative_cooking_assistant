@@ -22,7 +22,7 @@ $(document).ready(function() {
                 'User:</span> ' + chat_message.val() + '</li>');
             $.ajax({
                 type: "POST",
-                url: '/',
+                url: '',
                 data: ({session_id : session_id,
                         chat_message : chat_message.val()}),
                 dataType: 'text',
@@ -58,11 +58,14 @@ $(document).ready(function() {
 });
 </script>
 
+<link  href="http://fonts.googleapis.com/css?family=Droid+Sans:regular,bold" rel="stylesheet" type="text/css" >
 <style type="text/css">
+    body { font-family: 'Droid Sans', serif; }
     .bot_message { color: red; }
     .user_message { color: blue; }
     .debug_message { color: gray; }
     #chatlog { list-style-type: none; padding: 0; margin-left: 0;}
+    #chat_message { width: 550px; }
 </style>
 </head>
 

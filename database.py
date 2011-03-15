@@ -147,17 +147,7 @@ class Database(object):
         self._sessionmaker = sessionmaker(bind=self._engine)
         self._session = self._sessionmaker()
         self.create_database_schema()
-        self._ontology_regex = None # This is cached for performance.
-
-    def __getstate__(self):
-        # When pickling this object, use the database url as the pickled
-        # representation.
-        return self._database_url
-
-    def __setstate__(self, database_url):
-        # When unpickling this object, connect to the database_url stored
-        # during pickling.
-        self.__init__(database_url)
+        self._ontology_match_order = None  # This is cached for performance.
 
     def create_database_schema(self):
         """
@@ -349,30 +339,55 @@ class Database(object):
         return query
 
     # Ontology-related methods
-
     def _get_closest_ontology_node(self, name):
         """
         Find the ontlogy node that is the best match against the input string,
         or None if no node matches.
         """
-        # Heuristic: try the longest match first.  If ontology nodes have the
-        # same name, prefer the deeper node.
-        if not self._ontology_regex:
-            nodes = self._session.query(OntologyNode).all()
+        name = name.strip()
+        # Heuristic: try to match ingredients before cuisines.  Try the longest
+        # match first.  If ontology nodes have the same name, prefer the
+        # shallower node.
+        if not self._ontology_match_order:
+            all_nodes = self._session.query(OntologyNode).all()
+            # This is very inefficient:
+            ingredient_nodes = \
+                [n for n in all_nodes if n.path_from_root[0].name == 'ingredient']
+            cuisine_nodes = \
+                [n for n in all_nodes if n.path_from_root[0].name == 'cuisine']
             def sort_function(x, y):
-                return cmp(len(y.name), len(x.name)) or cmp(y.depth, x.depth)
-            nodes.sort(sort_function)
-            self._ontology_regex = \
-                re.compile('|'.join('\\b%s\\b' % n.name for n in nodes))
-        match = self._ontology_regex.match(name)
-        if match and match.group(0):
-            node_name = match.group(0)
-            ontology_node = (self._session
-                .query(OntologyNode)
-                .filter_by(name=node_name)
-                .order_by(desc(OntologyNode.depth))).first()
-            #print "Matched %s with Ontology %s" % (name, ontology_node.name)
-            return ontology_node
+                return cmp(len(y.name), len(x.name)) or cmp(x.depth, y.depth)
+            ingredient_nodes.sort(sort_function)
+            cuisine_nodes.sort(sort_function)
+            nodes = ingredient_nodes + cuisine_nodes
+            self._ontology_match_order = nodes
+        for node in self._ontology_match_order:
+            s = name.find(node.name)  # first character of match
+            e = s + len(node.name) - 1  # second character of match
+            if s != -1 and (s == 0 or name[s-1] == ' ') and (e == len(name)-1 or name[e+1] == ' '):
+                # Check if the nodes with the same name appear as both cuisines
+                # and ingredients, and apply the tiebreaking rules: Cuisines
+                # take precedence over ingredients if and only if the cuisine
+                # name exactly matches the input string.
+                if node.name != name:
+                    # Here, an ingredient will take precedence:
+                    return node
+                else:
+                    nodes_with_name = \
+                        (self._session.query(OntologyNode)
+                              .filter_by(name=name)
+                              .order_by(OntologyNode.depth))
+                    if nodes_with_name.count() == 1:
+                        return node
+                    else:
+                        # Check if a cuisine node exists
+                        matching_cuisine_nodes = \
+                            [n for n in nodes_with_name.all() if
+                             n.path_from_root[0].name == 'cuisine']
+                        if not matching_cuisine_nodes:
+                            return node
+                        else:
+                            return matching_cuisine_nodes[0]
         else:
             return None
 
@@ -409,7 +424,7 @@ class Database(object):
         if added_nodes:
             self._session.add(last_node)
             self._session.commit()
-            self._ontology_regex = None  # Expire cached regex due to new node.
+            self._ontology_match_order = None  # Expire cached due to new node.
         else:
             raise DuplicateOntologyNodeException(
                 'OntologyNode %s already exists.' % str(ontology_tuple))

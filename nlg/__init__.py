@@ -32,10 +32,19 @@ For example, this would be instantiated as
     'clarify_list' : A list of objects that clarify is asking the user to
                      choose from.
 
+'specify_recipe'
+    'recipes' : A list of Recipe objects
+
+'related_search'
+    'related_items' : A list of strings used as ideas for related searches.
+
 'acknowledge'
 'affirm'
 'decline'
 'unknown'
+'goodbye'
+'advise'
+'search_fail'
 
 """
 import random
@@ -46,9 +55,6 @@ from simplenlg import NPPhraseSpec, PPPhraseSpec, SPhraseSpec, Realiser, \
 
 HORIZONTAL_LINE = '-' * 70
 
-# The realiser can't be stored in a NaturalLanguageGenerator instance variable
-# because Py4J can't pickle Java objects, which prevents the web server from
-# functioning.
 REALISER = Realiser()
 
 
@@ -128,33 +134,27 @@ class NaturalLanguageGenerator(object):
 
         self.cruel_words = {
             'names': ['maggot', 'little snot', 'jerk', 'weakling'],
-            'adjectives': ['incompetent', 'worthless', 'useless']
+            'adjectives': ['incompetent', 'worthless', 'useless'],
+            'goodbye': ['Go away',
+                        'Good riddance',
+                        'If you don\'t need me, then I don\'t need you',
+                        'Just take what you want and leave']
         }
         self.affectionate_words = {
             'names': ['honey', 'love', 'sweetie'],
-            'adjectives': ['my']
+            'adjectives': ['my'],
+            'goodbye': ['I will be waiting for your return',
+                        'Don\'t leave so soon']
         }
         self.normal_words = {
             'names': ['bro', 'brah', 'broseph', 'friend', 'buddy', 'comrade',
-                      'amigo'],
-            'adjectives': ['awesome', 'fantastic', 'cool']
+                      'amigo', 'dawg'],
+            'adjectives': ['awesome', 'fantastic', 'cool'],
+            'goodbye': ['Bye', 'Later', 'Au revoir', 'Peace out', 'Adios']
         }
 
         self.log = logger
         self.log.info('NLG creation successful')
-
-    def __getstate__(self):
-        # When pickling this object, don't pickle the logger object; store its
-        # name instead.
-        result = self.__dict__.copy()
-        result['log'] = self.log.name
-        return result
-
-    def __setstate__(self, state):
-        # When unpickling this object, get a logger whose name was stored in
-        # the pickle.
-        self.__dict__ = state  # pylint: disable=W0201
-        self.log = logging.getLogger(self.log)
 
     def generate_response(self, content_plan_or_plans):
         """
@@ -191,6 +191,10 @@ class NaturalLanguageGenerator(object):
                 self.acknowledge(),
                 self.generate_recipe(content_plan['recipe'])
             ])
+        elif content_plan.msg_type == "specify_recipe":
+            return self.specify_recipe(content_plan)
+        elif content_plan.msg_type == "related_search":
+            return self.search_related(content_plan)
         elif content_plan.msg_type == "summarize_query":
             return self.summarize_query(content_plan['query'])
         elif content_plan.msg_type == "clarify":
@@ -203,6 +207,12 @@ class NaturalLanguageGenerator(object):
             return self.decline()
         elif content_plan.msg_type == "unknown":
             return self.unknown()
+        elif content_plan.msg_type == "goodbye":
+            return self.goodbye()
+        elif content_plan.msg_type == "advise":
+            return self.advise()
+        elif content_plan.msg_type == "search_fail":
+            return self.search_fail({})
         else:
             self.log.error("Don't know how to handle msg_type '%s'" %
                 content_plan.msg_type)
@@ -310,7 +320,7 @@ class NaturalLanguageGenerator(object):
                 utterance.addModifier(modifier)
         utterance.addComplement(target)
 
-        output = REALISER.realiseDocument(utterance).strip()
+        output = self.clean_str(REALISER.realiseDocument(utterance).strip())
         return output
 
     def acknowledge(self):
@@ -352,6 +362,15 @@ class NaturalLanguageGenerator(object):
         decline += random.choice([', ' + random.choice([self.tone_str('adjectives') + ' ', '']) + self.tone_str('names'), ''])
         return decline + random.choice(['.', '!'])
 
+    def goodbye(self):
+        """
+        Bids goodbye as the user quits the program.
+        """
+        result = random.choice([self.advise() + '\n', ""])
+        result += self.tone_str('goodbye')
+        result += random.choice([', ' + random.choice([self.tone_str('adjectives') + ' ', '']) + self.tone_str('names'), ''])
+        return result + random.choice(['.', '!'])
+
     def unknown(self):
         """
         Returns an utterance that tells the user the last input was not
@@ -379,7 +398,7 @@ class NaturalLanguageGenerator(object):
             output.setComplement('what you')
             output.setPostmodifier('just said')
 
-        return REALISER.realiseDocument(output).strip()
+        return self.clean_str(REALISER.realiseDocument(output).strip())
 
     def clarify(self, keywords):
         """
@@ -416,7 +435,7 @@ class NaturalLanguageGenerator(object):
         clarification.addSpec(stat3)
         clarification.setListConjunct(',')
 
-        return REALISER.realiseDocument(clarification).strip()
+        return self.clean_str(REALISER.realiseDocument(clarification).strip())
 
     def summarize_query(self, query):
         """
@@ -447,7 +466,7 @@ class NaturalLanguageGenerator(object):
         # create phrase to include ingredients
         if 'include_ingredients' in query:
             ing_inc = PPPhraseSpec()
-            ing_inc.setPreposition('that contain')
+            ing_inc.setPreposition('that contain ')
             for ingredient in query['include_ingredients']:
                 ing_inc.addComplement(ingredient)
             summary.addModifier(ing_inc)
@@ -494,7 +513,51 @@ class NaturalLanguageGenerator(object):
         final.addSpec(steps)
         final.setListConjunct('.')
 
-        return REALISER.realiseDocument(final).strip()
+        return self.clean_str(REALISER.realiseDocument(final).strip())
+
+    def specify_recipe(self, keywords):
+        """
+        Provides a user with a list of recipes in order to specify which one
+        to show in detail.
+        """
+        if 'recipes' not in keywords:
+            raise NLGException('specify_recipe: recipes key not present')
+        if len(keywords['recipes']) == 0:
+            return 'I could not find any recipes with those specifications!'
+        output = []
+        output.append('I found a total of %i recipes.' % len(keywords['recipes']))
+        output.append('Here are some recipes that I found:\n')
+        counter = 1
+        for recipe in keywords['recipes']:
+            output.append(' '.join([str(counter), '\'' + recipe.title + '\'', 
+                                    'by', recipe.author]))
+            counter += 1
+        output.append('\nI will show you a recipe in detail if you give me a number or title of the one you want to observe.')
+        return '\n'.join(output)
+
+    def search_fail(self, keywords):
+        """
+        Returns an utterance that informs the user that the search did not
+        return any viable results.
+        """
+        return "TODO: search_fail is not implemented yet."
+
+    def search_related(self, keywords):
+        """
+        Returns an utterance that suggests the user to perform a related search.
+        """
+
+        if 'related_items' not in keywords:
+            raise NLGException('search_related: related_items key not present')
+        return "TODO: search_related is not implemented yet."
+
+    def advise(self):
+        """
+        Returns an utterance that advises the user on a random culinary fact,
+        most likely as the user is exiting the program.
+        """
+
+        return 'I don\'t have any advice for you.'
 
     def change_tone(self, tone):
         """
@@ -523,6 +586,16 @@ class NaturalLanguageGenerator(object):
                 return random.choice(self.normal_words[key])
         return ''
 
+    def clean_str(self, string):
+        """
+        Cleans up the string so that it does not contain artifacts such as
+        carriage returns.
+        """
+        parts = string.split('\r')
+        string = ''.join(parts)
+        parts = string.split('\n')
+        return ' '.join(parts)
+
 
 class NLGException(Exception):
     """
@@ -537,16 +610,29 @@ def demo():
 
     >>> demo_output = demo()  # Make sure that the demo doesn't crash.
     """
+    # Simple mock recipe for testing specify_recipe.
+    class Mock(object):
+        pass
+    mock_recipe = Mock()
+    mock_recipe.title = "Chocolate Chip Cookies"
+    mock_recipe.author = "Grandma"
+
     messages = [
         ContentPlanMessage('echo', message="Hello World"),
         ContentPlanMessage('summarize_query',
             query={'include_ingredients': ['egg']}),
         ContentPlanMessage('clarify', clarify_cat='ingredient',
             clarify_list=['chicken', 'beef', 'pork']),
+        ContentPlanMessage('specify_recipe', recipes=[mock_recipe]),
+        ContentPlanMessage('related_search',
+            related_items=['chicken', 'beef', 'pork']),
         ContentPlanMessage('acknowledge'),
         ContentPlanMessage('affirm'),
         ContentPlanMessage('decline'),
-        ContentPlanMessage('unknown')
+        ContentPlanMessage('unknown'),
+        ContentPlanMessage('goodbye'),
+        ContentPlanMessage('advise'),
+        ContentPlanMessage('search_fail'),
     ]
     nlg = NaturalLanguageGenerator(logging.getLogger())
     return nlg.generate_response(messages)

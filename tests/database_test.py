@@ -35,7 +35,8 @@ class TestDatabaseQueries(unittest.TestCase):
         ontology_tuples = [
             ('ingredient', 'vegetable', 'root vegetable', 'potato'),
             ('ingredient', 'vegetable', 'root vegetable', 'yam'),
-            ('ingredient', 'fruit', 'apple')
+            ('ingredient', 'fruit', 'apple'),
+            ('cuisine', 'vegetable')
         ]
         for tup in ontology_tuples:
             self.db.add_ontology_node(tup)
@@ -70,7 +71,7 @@ class TestDatabaseQueries(unittest.TestCase):
         Test methods for navigating the ontology.
         """
         # The test database should only contain 7 IngredientNodes:
-        assert self.db._session.query(OntologyNode).count() == 7
+        assert self.db._session.query(OntologyNode).count() == 9
         # Test roots nodes:
         ingredient_root = \
             self.db._session.query(OntologyNode).filter_by(name='ingredient').one()
@@ -89,6 +90,33 @@ class TestDatabaseQueries(unittest.TestCase):
         assert [n.name for n in yam.path_from_root] == \
                ['ingredient', 'vegetable', 'root vegetable', 'yam']
         assert [n.name for n in yam.siblings] == ['potato']
+
+    def test_get_ontology_node(self):
+        """
+        Tests for db.get_ontology_node().
+        """
+        # Whitespace should not matter:
+        node = self.db.get_ontology_node('ingredient')
+        assert node.name == 'ingredient'
+        node = self.db.get_ontology_node('   ingredient    ')
+        assert node.name == 'ingredient'
+        # Pluralization and capitalization should not matter:
+        node = self.db.get_ontology_node('   Cuisines ')
+        assert node.name == 'cuisine'
+        # If a word is both a cuisine and an ingredient (like 'vegetable' in
+        # this example ontology), then the ingredient should take precedence if
+        # there are other words in the input (like 'fresh') and the cuisine
+        # should take precedence if it is the only word in the input:
+        node = self.db.get_ontology_node('   fresh   vegetable    ')
+        assert node.name == 'vegetable'
+        assert node.supertype.name == 'ingredient'
+        # Here, cuisine should take precedence.
+        node = self.db.get_ontology_node('   vegetable    ')
+        assert node.name == 'vegetable'
+        assert node.supertype.name == 'cuisine'
+        # Check that substrings do not trigger false positives
+        node = self.db.get_ontology_node('  XvegetableX ')
+        assert node == None
 
     def test_ontology_depth(self):
         """

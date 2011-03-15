@@ -6,10 +6,10 @@ For a demo, run this program and point your browser to
 http://localhost:8080
 """
 
+import os
 import logging
 import uuid
 import urlparse
-import cPickle
 import gc
 
 from chatbot import Chatbot
@@ -20,6 +20,9 @@ class WebChatServer(object):
     """
     Provides web-based chat interface.  Instances of this class are
     callable WSGI applications.
+
+    Note: in a real server, you would want sessions to expire after some amount
+    of inactivity.
     """
 
     def __init__(self, db, logger):
@@ -35,22 +38,13 @@ class WebChatServer(object):
         """
         Store the chatbot in the key-value store.
         """
-        self.state_datastore[session_id] = cPickle.dumps(chatbot)
+        self.state_datastore[session_id] = chatbot
 
     def _load_chatbot(self, session_id):
         """
         Load the chatbot from the key-value store.
         """
-        bot = cPickle.loads(self.state_datastore[session_id])
-        # This is an ugly hack to magically re-attach detached SQLAlchemy
-        # objects to the database.  It would be more efficient to search this
-        # chatbot's object graph for detached objects rather than using the
-        # garbage collector.
-        objects = gc.get_objects()
-        for obj in objects:
-            if isinstance(obj, Base):
-                self.db._session.add(obj)
-        return bot
+        return self.state_datastore[session_id]
 
     def __call__(self, environ, start_response):
         """
@@ -68,7 +62,8 @@ class WebChatServer(object):
             self._save_chatbot(chatbot, session_id)
             # Return HTML of chat interface
             start_response('200 OK', [('content-type', 'text/html')])
-            template = open('chat_interface.html').read()
+            template = open(os.path.join(os.path.dirname(__file__),
+                'chat_interface.html')).read()
             template = template.replace("{{SESSION_ID}}", session_id)
             template = template.replace("{{OUTPUT}}", greeting)
             return (template, )

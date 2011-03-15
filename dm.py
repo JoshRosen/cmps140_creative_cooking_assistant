@@ -24,19 +24,6 @@ class DialogueManager(object):
         self.search_results = []
         self._go_to_start_state()
 
-    def __getstate__(self):
-        # When pickling this object, don't pickle the logger object; store its
-        # name instead.
-        result = self.__dict__.copy()
-        result['log'] = self.log.name
-        return result
-
-    def __setstate__(self, state):
-        # When unpickling this object, get a logger whose name was stored in
-        # the pickle.
-        self.__dict__ = state  # pylint: disable=W0201
-        self.log = logging.getLogger(self.log)
-
     def _go_to_start_state(self):
         """
         Go back to the start state and reset state variables.

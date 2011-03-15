@@ -11,10 +11,11 @@ import wordlists
 in_parens = Regex(r'\([^)]+\)')
 
 
-modifier = Or(LemmatizedWord(w) for w in wordlists.food_adjectives if w) | in_parens
+modifier = Or(LemmatizedWord(w) for w in wordlists.food_adjectives if w) | in_parens \
+           | Keyword("to taste")
 
 
-base_ingredient = Regex(r"[^-(),][^ (),]+") + SkipTo(Literal(',') | Word('-') | in_parens | LineEnd())
+base_ingredient = Regex(r"[^-(),][^ (),]+") + SkipTo(Keyword("to taste") | Literal(',') | Word('-') | in_parens | LineEnd())
 
 
 unit = Optional(in_parens) + Or(LemmatizedWord(w)  for w in wordlists.units_of_measure if w)
