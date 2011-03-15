@@ -7,6 +7,9 @@ from nlu.stanford_utils import get_node_string
 from nlu.stanford_utils import extract_subject_nodes
 
 def extract_subjects(parse_tree, enum=True):
+    """
+    Returns a list of subject words.
+    """
     for node in extract_subject_nodes(parse_tree):
         word = get_node_string(node)
         if enum:
