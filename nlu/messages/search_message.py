@@ -1,12 +1,16 @@
+from __future__ import absolute_import
 from nlu.messages.parsed_input_message import ParsedInputMessage
 import nltk
 from nltk.corpus import wordnet
-import utils
-import wordlists
 
+import wordlists
+import utils
 from nlu import is_ingredient, normalize_ingredient_name
-from nlu.stanford_utils import extract_subject_nodes
 from nlu.stanford_utils import get_node_string
+from nlu.stanford_utils import get_parse_tree
+from nlu.messages.msgutils import extract_words_from_list
+from nlu.messages.msgutils import extract_junction
+from nlu.messages.msgutils import extract_subjects
 
 def get_ingredients(tokenized_string, enum=False):
     """
@@ -44,7 +48,7 @@ def get_meals(tokenized_string, enum=False):
     
     stemmed_string = utils.stem_words(tokenized_string)
     stemmed_meals = utils.stem_words(wordlists.meal_types)
-    results = _extract_words_from_list(stemmed_meals, stemmed_string, True)
+    results = extract_words_from_list(stemmed_meals, stemmed_string, True)
     if enum:
         return [(i, tokenized_string[i]) for i, w in results]
     else:
@@ -67,24 +71,12 @@ def get_cuisines(tokenized_string, enum=False):
     cuisines = set.difference(wordlists.cuisines, wordlists.meal_types)
     cuisines = cuisines.union(wordlists.list_of_adjectivals)
     stemmed_cuisines = utils.stem_words(cuisines)
-    results = _extract_words_from_list(stemmed_cuisines, stemmed_string, True)
+    results = extract_words_from_list(stemmed_cuisines, stemmed_string, True)
     if enum:
         return [(i, tokenized_string[i]) for i, w in results]
     else:
         return [tokenized_string[i] for i, w in results]
 
-def _extract_words_from_list(word_list, string_list, enum=False):
-    """
-    Returns (index, word) or a list of words for words which occur in both
-    lists.
-    """
-    
-    for i, word in enumerate(string_list):
-        if word in word_list:
-            if enum:
-                yield (i, word)
-            else:
-                yield word
 
 class SearchMessage(ParsedInputMessage):
     """
@@ -97,7 +89,11 @@ class SearchMessage(ParsedInputMessage):
     1.0
     
     >>> # Test _parse
-    >>> sm = SearchMessage('I like apples and carrots.')
+    >>> sm = SearchMessage('I like apples or carrots.')
+    >>> sm.frame['ingredient']
+    [{'descriptor': [], 'relationship': 'or', 'id': 2, 'preference': 0, 'name': 'apples'}, {'descriptor': [], 'relationship': 'or', 'id': 4, 'preference': 0, 'name': 'carrots'}]
+    >>> sm.frame['dish']
+    []
     >>> for ingredient in sm.frame['ingredient']: print ingredient['name']
     apples
     carrots
@@ -136,45 +132,60 @@ class SearchMessage(ParsedInputMessage):
         tokenized_string = tokenizer.tokenize(raw_input_string)
         tagger = utils.combined_taggers
         tagged_string = tagger.tag(tokenized_string)
+        parseTree = get_parse_tree(tokenized_string)
         
         # Ingredients
         for i, ingredient in get_ingredients(tokenized_string, enum=True):
-            self.frame['ingredient'].append({'id': i,
-                                             'name': ingredient,
-                                             'descriptor': [], # TODO: siblings JJ
-                                             'preference': 0, # TODO: RB = not or n't
-                                             'relationship': 'and', #TODO: Implement
-                                             })
+            frameItem = {}
+            frameItem['id'] = i
+            frameItem['name'] =ingredient
+            frameItem['descriptor'] = [] # TODO: siblings JJ
+            frameItem['preference'] = 0 # TODO: RB = not or n't
+            frameItem['relationship'] = extract_junction(parseTree, ingredient)
+            self.frame['ingredient'].append(frameItem)
+            
         # Meals
         for i, meal in get_meals(tokenized_string, enum=True):
             meal = tokenized_string[i]
-            self.frame['meal'].append({'id': i,
-                                       'name': meal,
-                                       'descriptor': [], # TODO: siblings JJ
-                                       'preference': 0, # TODO: RB = not or n't
-                                       'relationship': 'and', #TODO: Implement
-                                       })
+            frameItem = {}
+            frameItem['id'] = i
+            frameItem['name'] = meal
+            frameItem['descriptor'] = [] # TODO: siblings JJ
+            frameItem['preference'] = 0 # TODO: RB = not or n't
+            frameItem['relationship'] = extract_junction(parseTree, meal)
+            self.frame['meal'].append(frameItem)
+            
         # Cuisine
         for i, cuisine in get_cuisines(tokenized_string, enum=True):
-            self.frame['cuisine'].append({'id': i,
-                                          'name': cuisine,
-                                          'descriptor': [], # TODO: siblings JJ
-                                          'preference': 0, # TODO: RB = not or n't
-                                          'relationship': 'and', #TODO: Implement
-                                         })
+            frameItem = {}
+            frameItem['id'] = i
+            frameItem['name'] = cuisine
+            frameItem['descriptor'] = [] # TODO: siblings JJ
+            frameItem['preference'] = 0 # TODO: RB = not or n't
+            frameItem['relationship'] = extract_junction(parseTree, cuisine)
+            self.frame['cuisine'].append(frameItem)
+            
         # Dish
-        # TODO: Get the subject of the sentence (aka what the verb is reffering to)
-        
-        dishesSet = [(i, w) for i,w in extract_subject_nodes(tokenized_string, enum=True) if
-                          w not in self.frame['ingredient'] and
-                          w not in self.frame['meal']]
+        dishesSet = []
+        # add sentence subjects which aren't already ingredients or meals
+        #TODO: Set extract_subject_nodes to hanle multiple phrases by splitting on and/or
+        # write a function to parse tree into and/or sub trees
+        for i, dish in extract_subjects(parseTree):
+            duplicate = False
+            ignoreFrames = ['cuisine', 'ingredient', 'meal']
+            for frameKey in ignoreFrames:
+                for item in self.frame[frameKey]:
+                    if dish in item['name']: duplicate = True
+            if not duplicate: dishesSet.append((i, dish))
+                          
         for i, dish in dishesSet:
-            self.frame['dish'].append({'id': i,
-                                       'name': dish,
-                                       'descriptor': [], # TODO: siblings JJ
-                                       'preference': 0, # TODO: RB = not or n't
-                                       'relationship': 'and', #TODO: Implement
-                                       })
+            frameItem = {}
+            frameItem['id'] = i
+            frameItem['name'] = dish
+            frameItem['descriptor'] = [] # TODO: siblings JJ
+            frameItem['preference'] = 0 # TODO: RB = not or n't
+            frameItem['relationship'] = extract_junction(parseTree, dish)
+            self.frame['dish'].append(frameItem)
         
     @staticmethod
     def confidence(raw_input_string):

@@ -4,7 +4,6 @@ import cPickle
 import logging
 import os
 
-
 def stem_words(words, stemmer=nltk.PorterStemmer(), lcase=True):
     """
     returns a stemmed list of words
