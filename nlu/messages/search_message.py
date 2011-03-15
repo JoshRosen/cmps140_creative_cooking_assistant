@@ -172,10 +172,10 @@ class SearchMessage(ParsedInputMessage):
         # write a function to parse tree into and/or sub trees
         for i, dish in extract_subjects(parseTree):
             duplicate = False
-            for item in self.frame['ingredient']:
-                if dish in item['name']: duplicate = True
-            for item in self.frame['meal']:
-                if dish in item['name']: duplicate = True
+            ignoreFrames = ['cuisine', 'ingredient', 'meal']
+            for frameKey in ignoreFrames:
+                for item in self.frame[frameKey]:
+                    if dish in item['name']: duplicate = True
             if not duplicate: dishesSet.append((i, dish))
                           
         for i, dish in dishesSet:

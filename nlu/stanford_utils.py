@@ -140,6 +140,10 @@ def extract_junction_node(parse_tree, node):
             # There has to be more relaible way to do this
             if 'and' in child.toString() or 'or' in child.toString():
                 return child
+def extract_negation_node(parse_tree, none):
+    """
+    
+    """
     
 def extract_word_modifiers(tokenized_string):
     pass
