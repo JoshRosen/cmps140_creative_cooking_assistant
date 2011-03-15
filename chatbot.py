@@ -137,7 +137,7 @@ class Chatbot(object):
             'dm': self.dm,
             'nlg': self.nlg,
             'nlu': self.nlu,
-            'create': self.creative,
+            'create': self.creative_nlp,
             'chatbot': self
         }
         banner = "Debugging Console (db, dm, nlg, nlu, chatbot)"
