@@ -1,0 +1,332 @@
+# WE don't allow most misspellings.
+# <ingredient_list> := <preparation_particple> <adjetive> <ingredient>
+# ingredient: 
+#    Look in quad list
+#    Look in triple list
+#    Look in pair list
+#    Look in single word list
+
+# QUESTIONS
+# WHY - not implemented
+# WHAT IS - provide definitions
+# WHERE - Consider answering cuising locale questions.
+# WHEN - Consider answering question that are in our history?
+# HOW - not implemented but conver to what questions.
+#   How about <ingredient list> 
+#   How about including <ingredient list> 
+#   How about not including <ingredient list> 
+
+# BASIC SEARCH AND PREFERENCE UTTERANCES
+# Two ways to test our preference engine.
+# Dumps this out.
+#
+# I like series:
+# I would like series:
+# Let's make a pizza
+I would like to make pepperoni sausage
+I like pepperoni sausage
+I would like pancakes with maple syrup
+I like rosemary and cardamon and other spices.
+I would like to make Ravioli
+I would like to make ice cream
+I would like to make chocolate ice cream
+I would like to make Pizza
+I would like to make carrots
+# I would like something <partciple_of_preparation>
+I would like something baked
+I would like something that is baked
+
+# I would like to make <dish>
+# Let us make a pizza
+# I feel like <dish>
+# I feel like a <dish>
+# Is there anything with lots of <ingredient> in it?
+I feel like a Pizza.  Can you help?
+I feel like a Pepperoni Pizza.  
+I feel like a nice warm Pepperoni Pizza with Parmegianne.  
+I feel like Mashed Potatoes.  Can you help?
+
+# I want to do a <preparation_type>
+# I want to do a <dish>
+I want to do a stir fry
+I want to make a Paella
+#    I want to do a <preparation_type>
+
+# I WANT SERIES:
+# For now ignore <a new> for <dish> that uses <ingredient_list>
+# I want <a new> recipe for salad dressing that uses <ingredient>.
+I want a new recipe for salad dressing that uses balsamic vinegar.
+I want some Chinese food that includes pork and broccoli.
+
+# I want to cook some <ingredient>.
+I want to cook some ham.
+I like brown rice.
+I hate artichoke hearts.
+I'd like Mexican Food?
+I prefer apples over oranges.
+
+# NEGATIONS OF ABOVE:
+# I DONT WANT
+# I DO NOT LIKE
+# I DO NOT FEEL LIKE
+# I WOULD NOT LIKE
+I don't like these recipies
+
+# I hate and related.
+I hate truffles
+#
+# MORE
+I like vodka.
+I like drinks with vodka.
+I like sweet drinks.
+I like fancy drinks.
+
+# SHOW ME SERIES:
+# Show me some <ingredient> dishes.
+# Show me some dishes that include <ingredient_list>.
+Show me some Lobster dishes.
+Show me a recipe with steak, rice, and potatoes
+Only show me breakfasts.
+Only show me vegetarian meals.
+
+# LET'S MAKE SERIES
+# LET'S NOT MAKE SERIES
+Let's not make Ravioli
+
+# CAN I SERIES
+Can I get that with strawberries?
+# CAN YOU SERIES
+Can you find something with mashed potatoes?
+Can you find something with grilled potatoes?
+#
+# How about
+How about pears?
+# Do you like pears?
+
+#Answer
+# Sure ... 
+# Action: add to immediate list.
+
+# Preference - very strong
+I eat beef
+I don't eat beef
+I like to cook with celery
+I like to cook with lots of butter
+# 
+# Simple command:
+
+# I HAVE series: - becomes temporary preference.
+# Having implies use this, implies liking:
+I have some chicken, beef, onions, rice, potatoes and mustard in the frig, what can I make?
+# It should have ...
+It should have some chocolate.
+It have to have some chocolate.
+It must have some chocolate.
+
+# MISCELLANEOUS:
+What dessert should I make today?
+Do any recipes exclude fruits and vegetables?
+Do any recipes exclude fruits and vegetables but includes meat?
+# answer lots
+# or: yes, 1300 of them or more.
+# no.
+# PHRASES as questions or requests
+No meat products.
+Recipes with kumquats?
+
+# I DONT HAVE series: - becomes temporary preference.
+What can I do that involves braising meat?
+What can I make that involves braising meat?
+
+# INCLUDE SERIES
+Include black beans and eggs!
+
+How many cups of salsa does the recipe call for?
+
+I want a drink.
+I want to make a drink.
+I want to try a drink.
+I want to try a random drink.
+
+# GIVE ME SERIES:
+Give me the recipe for a beadlestone cocktail.
+Give me something strong.
+
+# RECIPE FOR:
+recipe for beadlestone cocktail.
+recipe for a martini cocktail.
+
+# We have # drinks. How many do you want to see?
+
+I need drinks that have vodka.
+
+List drinks that have vodka.
+List drinks that don't have vodka.
+List me drinks that don't have vodka.
+List any drink that doesn't have vodka.
+List some drinks that doesn't have vodka.
+
+
+I want to try a new drink.
+I need a stiff drink.
+I want to make a Martini.
+How do I make a martini with tequila?
+
+What are some drinks that don't have vodka?
+What's a drink that has lemon and vermouth?
+I want something with tequila.
+
+# I don't like <ingredient>
+# I do not like <dish>
+I don't like carrots.
+I don't like rice.
+I don't like Chicken Parmigiana
+I don't like rice with chicken but I do like rice with seafood
+No, I want a different dish.
+# I don't really want <category>|<dish>
+I don't really want pasta 
+
+I would like a desert?
+I love to enjoy pie.
+I love to eat pie.
+I like pie.
+Pie is good.
+I love to enjoy pie.
+I enjoy pie.
+I would like banana with chocolate.
+I feel like pasteries.
+Bananas taste horrible.
+I dislike pears.
+
+# WHAT IS SERIES
+# Answer, I don't know how to <verb> but the definition is: <defintion>
+# or I don't know how to do that.
+What is braising?
+To braise is "..."
+
+# What question with ingredients.
+What recipes do you have with chicken and apples?
+What recipe can I make with pork?
+
+# HOW DO YOU SERIES
+How do you braise food?
+
+# PREFERENCE
+Tell me what I like.
+What do I like?
+
+# Do you know any <category> food?
+Do you know any asian food?
+
+I want a desert with cherries and strawberries.
+
+# ===================
+# <with mispelling>
+I feel like pastries.
+
+I hate eating vegetables.
+I do not like mexican food.
+I dont like vegetables.
+I would like a cuban dish
+I would like a thai plate
+
+# Tough one implies that he wants a dessert .. odd.
+I dont want any deserts with nuts.
+
+# I want something with <ingredient>.
+I want something with chocolate.
+
+I would like a salad with a dressing.
+
+I have tomatoes, what can I make?
+
+# QUESTIONS TO DO WITH INGREDIENTS AND DISHES
+# ===========================================
+# What types of <dish_categories> recipes do you know?
+What types of sandwich recipes do you know?
+# What type of recipes do you have with <ingredient>?
+Are there any sandwhiches without baloney?
+What pizzas have meat?
+What type of recipes do you have with blueberries?
+Do you have any recommendations for me?
+Do you have any recommendations for food with chile?
+Can you recommend me food which has sugar?
+Can you recommend me food which doesn't have any sugar?
+Can you recommend me food which contains onions?
+
+For dinner I would like to have chicken.
+# Statements
+# ==========
+I want to make breakfast.
+I want to barbeque something.
+I want to barbeque some chicken
+I want to make a sandwich.
+I want something buttery
+I want to make something easy.
+I want to bake a cake
+I want to make a meal that doesn't require the oven.
+I want to make the cheese omelette.
+
+I would like a sandwich, which doesn't contain onions.
+I would like a sandwich, which does not contain onions.
+I would like something which contains onions.
+
+# MISC
+Tell me your recipes.
+# We have 46k recipes.
+# What are you interested in.
+Tell me about the sandwiches.
+# We have 46k sandwiches.
+
+What is a BLT?
+How do I make a BLT.
+I don't really like nuts.
+I have lots of people here so I need to make a lot of food.
+I need to make dinner for two.
+I'd like to make some homemade salsa.
+What can I make with a few bananas and some strawberries?
+I need to make something with this cheese.
+Tell me how to make a chocolate birthday cake.
+
+How do you cook corned brisket?
+# We don't answer how-to questions but we can provide you with a recipe
+# for corned brisket.  Are you interested?
+Please exclude recipes with almonds
+#
+I would like to make pasta
+I would like to make something with carrots.
+What can I make with carrots and broccoli?
+#
+I am vegetarian.
+#
+How do I make scrambled eggs?
+#
+How much would two large eggs cost?
+How much does it cost?
+Show me some snacks that are low in calories please.
+#
+I have tomatoes, carrots, celery and onions.
+What can I make with tomatoes, lettuce, carrots and balsamic vinaigrette?
+I don't like tomatoes.
+How do I make chocolate fudge brownies?
+#
+I have four eggs and half a stick of butter.
+I have a bag of cheddar cheese.
+#
+Do you know about alcoholic beverages?
+# Yes - response - or no
+I want to make Mexican food.
+# 
+I need to eat more fruit in my diet.
+I have Lettuce, Onion, and Tomatoes
+# 
+I'd like to fix myself some nosh.
+
+# <adjetive>
+# <approval>
+# That is <not> <adjetive>
+# That is <not> really <not> bad <adjetive>
+# [<not>] <adjetive>
+# [<not>] <adverb>
+# Not <adjetive_list> <good_equiv>|<bad_equiv>
+
