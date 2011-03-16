@@ -1,3 +1,9 @@
+"""
+Generators are simply canned utterance utility functions for providing
+analytical support to the Messages. They have the advantage of being cached and
+easily passed around.
+"""
+
 from nlu.stanford_utils import get_parse_tree
 
 import nltk
