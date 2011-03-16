@@ -80,16 +80,22 @@ def get_cuisines(tokenized_string, enum=False):
 
 class SearchMessage(ParsedInputMessage):
     """
+    >>> from nlu.generators import *
+    >>> cache_size = 16
+    >>> generators = Generators()
+    >>> generators.add(Generate_Tokenized_String, cache_size)
+    >>> generators.add(Generate_Stanford_Parse_Tree, cache_size)
+    
     >>> # Test Confidence
-    >>> SearchMessage.confidence('I like apples and carrots.')
+    >>> SearchMessage.confidence('I like apples and carrots.', generators)
     1.0
-    >>> SearchMessage.confidence('I am looking for a breakfast dish.')
+    >>> SearchMessage.confidence('I am looking for a breakfast dish.', generators)
     1.0
-    >>> SearchMessage.confidence('What can I make with bricks?')
+    >>> SearchMessage.confidence('What can I make with bricks?', generators)
     1.0
     
     >>> # Test _parse
-    >>> sm = SearchMessage('I like apples or carrots.')
+    >>> sm = SearchMessage('I like apples or carrots.', generators)
     >>> sm.frame['ingredient']
     [{'descriptor': [], 'relationship': 'or', 'id': 2, 'preference': 0, 'name': 'apples'}, {'descriptor': [], 'relationship': 'or', 'id': 4, 'preference': 0, 'name': 'carrots'}]
     >>> sm.frame['dish']
@@ -101,14 +107,14 @@ class SearchMessage(ParsedInputMessage):
     []
     >>> sm.frame['cuisine']
     []
-    >>> sm = SearchMessage('I am looking for a breakfast dish.')
+    >>> sm = SearchMessage('I am looking for a breakfast dish.', generators)
     >>> for meal in sm.frame['meal']: print meal['name']
     breakfast
     >>> sm.frame['ingredient']
     []
     >>> sm.frame['cuisine']
     []
-    >>> sm = SearchMessage('What are some turkish breakfast recipes?')
+    >>> sm = SearchMessage('What are some turkish breakfast recipes?', generators)
     >>> for cuisine in sm.frame['cuisine']: print cuisine['name']
     turkish
     >>> for meal in sm.frame['meal']: print meal['name']
@@ -124,15 +130,12 @@ class SearchMessage(ParsedInputMessage):
     keywords = ['desire.v.01', 'like.v.05', 'need.n.02', 'looking.n.02',
                 'search.v.02', 'want.v.03', 'want.v.04', 'create.v.05']
     
-    def _parse(self, raw_input_string):
+    def _parse(self, raw_input_string, g):
         """
         Fills out message meta and frame attributes.
         """
-        tokenizer = nltk.WordPunctTokenizer()
-        tokenized_string = tokenizer.tokenize(raw_input_string)
-        tagger = utils.combined_taggers
-        tagged_string = tagger.tag(tokenized_string)
-        parseTree = get_parse_tree(tokenized_string)
+        tokenized_string = g.generate_tokenized_string(raw_input_string)
+        parseTree = g.generate_stanford_parse_tree(raw_input_string)
         
         # Ingredients
         for i, ingredient in get_ingredients(tokenized_string, enum=True):
@@ -188,7 +191,7 @@ class SearchMessage(ParsedInputMessage):
             self.frame['dish'].append(frameItem)
         
     @staticmethod
-    def confidence(raw_input_string):
+    def confidence(raw_input_string, generators):
         # TODO: configure minDistance on a per-keyword basis
         minDistance = 3
         bestDistance = float('inf')

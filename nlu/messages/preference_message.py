@@ -11,13 +11,19 @@ from nltk.corpus import wordnet
 
 class PreferenceMessage(ParsedInputMessage):
     """
-    >>> pm = PreferenceMessage('I like Japanese food.')
+    >>> from nlu.generators import *
+    >>> cache_size = 16
+    >>> generators = Generators()
+    >>> generators.add(Generate_Tokenized_String, cache_size)
+    >>> generators.add(Generate_Stanford_Parse_Tree, cache_size)
+    
+    >>> pm = PreferenceMessage('I like Japanese food.', generators)
     >>> print pm.frame
     {'word': 'like', 'temporal': 'permanent', 'prefer': True, 'subject': [u'Japanese', u'food']}
-    >>> pm = PreferenceMessage('I like carrots.')
+    >>> pm = PreferenceMessage('I like carrots.', generators)
     >>> print pm.frame
     {'word': 'like', 'temporal': 'permanent', 'prefer': True, 'subject': [u'carrots']}
-    >>> pm = PreferenceMessage('I want carrots.')
+    >>> pm = PreferenceMessage('I want carrots.', generators)
     >>> print pm.frame
     {'word': 'want', 'temporal': 'temporary', 'prefer': True, 'subject': [u'carrots']}
     """
@@ -31,18 +37,17 @@ class PreferenceMessage(ParsedInputMessage):
     keywords = keywords_temporary + keywords_permanent
     
     @staticmethod
-    def confidence(raw_input_string):
+    def confidence(raw_input_string, generators):
         return get_keyword_confidence(raw_input_string,
                                       PreferenceMessage.keywords,
                                       3)
         
-    def _parse(self, raw_input_string):
+    def _parse(self, raw_input_string, g):
         """
         Fills out message meta and frame attributes.
         """
-        tokenizer = nltk.WordPunctTokenizer()
-        tokenized_string = tokenizer.tokenize(raw_input_string)
-        parseTree = get_parse_tree(tokenized_string)
+        tokenized_string = g.generate_tokenized_string(raw_input_string)
+        parseTree = g.generate_stanford_parse_tree(raw_input_string)
         
         subjects = extract_subject_nodes(parseTree)
         if subjects:
