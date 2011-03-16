@@ -1,3 +1,12 @@
+"""
+Generators are simply canned utterance utility functions for providing
+analytical support to the Messages. They have the advantage of being cached and
+easily passed around.
+
+Motivation: The NLU does not have to keep track of what each Message requires
+nor execute utility functions which are not needed. Speed.
+"""
+
 from nlu.stanford_utils import get_parse_tree
 
 import nltk
