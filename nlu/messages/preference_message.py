@@ -1,6 +1,7 @@
 from nlu.messages.parsed_input_message import ParsedInputMessage
 from nlu.stanford_utils import extract_subject_nodes
 from nlu.stanford_utils import get_node_string
+from nlu.stanford_utils import get_parse_tree
 from nlu.messages.msgutils import get_keyword_confidence
 from nlu.messages.msgutils import extract_close_keywords
 
@@ -41,8 +42,9 @@ class PreferenceMessage(ParsedInputMessage):
         """
         tokenizer = nltk.WordPunctTokenizer()
         tokenized_string = tokenizer.tokenize(raw_input_string)
+        parseTree = get_parse_tree(tokenized_string)
         
-        subjects = extract_subject_nodes(tokenized_string)
+        subjects = extract_subject_nodes(parseTree)
         if subjects:
             self.frame['subject'] = [get_node_string(subject)
                                      for subject in subjects]
