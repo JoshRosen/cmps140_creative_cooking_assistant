@@ -13,14 +13,14 @@ class ParsedInputMessage(Message):
             'sentence': {'type':None, 'word':None}
             }
             
-    def __init__(self, raw_input_string):
+    def __init__(self, raw_input_string, generators):
         """
         Create a new ParsedInput and Fills out the message meta and frame
         attributes.
         """
         Message.__init__(self)
         self.raw_input_string = raw_input_string
-        self.meta['confidence'] = self.confidence(raw_input_string)
+        self.meta['confidence'] = self.confidence(raw_input_string, generators)
         self.frame = dict([(key, []) for key in self.frame_keys])
         
         # set meta:sentence
@@ -28,16 +28,16 @@ class ParsedInputMessage(Message):
         sentence_type, sentence_word = extract_sentence_type(raw_input_string)
         self.meta['sentence'] = {'type':sentence_type, 'word':sentence_word}
         # call implemented parse method
-        self._parse(raw_input_string)
+        self._parse(raw_input_string, generators)
 
-    def _parse(self, raw_input_string):
+    def _parse(self, raw_input_string, generators):
         """
         Fills out the message meta and frame attributes.
         """
         raise NotImplementedError
         
     @staticmethod
-    def confidence(raw_input_string):
+    def confidence(raw_input_string, generators):
         """
         Returns a confidence value for the raw_input_string matching the
         message type.
