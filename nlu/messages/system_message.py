@@ -11,7 +11,7 @@ class SystemMessage(ParsedInputMessage):
     exit_keywords = ['adieu.n.01', 'bye.n.01', 'farewell.n.02', 'exit.v.01']
     restart_keywords = ['restart.v.01', 'reload.v.02']
     keywords = exit_keywords + restart_keywords
-                
+
     def _parse(self, raw_input_string, g):
         """
         Fills out message meta and frame attributes
