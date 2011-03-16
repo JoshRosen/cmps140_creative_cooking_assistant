@@ -100,6 +100,7 @@ get_recipes() method.
 """
 from collections import defaultdict
 import re
+import types
 
 from sqlalchemy import create_engine, Table, Column, Integer, \
     String, ForeignKey, UniqueConstraint
@@ -146,17 +147,7 @@ class Database(object):
         self._sessionmaker = sessionmaker(bind=self._engine)
         self._session = self._sessionmaker()
         self.create_database_schema()
-        self._ontology_regex = None # This is cached for performance.
-
-    def __getstate__(self):
-        # When pickling this object, use the database url as the pickled
-        # representation.
-        return self._database_url
-
-    def __setstate__(self, database_url):
-        # When unpickling this object, connect to the database_url stored
-        # during pickling.
-        self.__init__(database_url)
+        self._ontology_match_order = None  # This is cached for performance.
 
     def create_database_schema(self):
         """
@@ -174,20 +165,8 @@ class Database(object):
         ingredient = Ingredient(ingredient_name)
         # TODO: this will behave incorrectly once we add non-ingredients to the
         # ontology.  I'll fix this later.
-        # Heuristic: try the longest match first.  If ontology nodes have the
-        # same name, prefer the deper node.
-        if not self._ontology_regex:
-            nodes = self.get_ontology_nodes().all()
-            def sort_function(x, y):
-                return cmp(len(y.name), len(x.name)) or cmp(y.depth, x.depth)
-            nodes.sort(sort_function)
-            self._ontology_regex = \
-                re.compile('|'.join('\\b%s\\b' % n.name for n in nodes))
-        match = self._ontology_regex.match(ingredient_name)
-        if match and match.group(0):
-            node_name = match.group(0)
-            ontology_node = self.get_ontology_nodes(node_name, deepest_first=True).first()
-            ingredient.ontology_node = ontology_node
+        ingredient.ontology_node = \
+            self._get_closest_ontology_node(ingredient_name)
             #print "Matched %s with Ontology %s" % (ingredient_name, ontology_node.name)
         return ingredient
 
@@ -288,6 +267,12 @@ class Database(object):
         To find Italian recipes:
         >>> recipes = db.get_recipes(include_cuisines=["Italian"])
         """
+        # Make sure that include_* and exclude_* arguments are not strings:
+        for argument in [include_ingredients, exclude_ingredients,
+            include_cuisines, exclude_cuisines]:
+            if isinstance(argument, types.StringTypes):
+                raise ValueError('include_* and exclude_* must be iterables of'
+                ' strings, not strings.')
         # Normalize ingredient names, so that they match the names stored in
         # the database.
         include_ingredients = \
@@ -354,6 +339,57 @@ class Database(object):
         return query
 
     # Ontology-related methods
+    def _get_closest_ontology_node(self, name):
+        """
+        Find the ontlogy node that is the best match against the input string,
+        or None if no node matches.
+        """
+        name = name.strip()
+        # Heuristic: try to match ingredients before cuisines.  Try the longest
+        # match first.  If ontology nodes have the same name, prefer the
+        # shallower node.
+        if not self._ontology_match_order:
+            all_nodes = self._session.query(OntologyNode).all()
+            # This is very inefficient:
+            ingredient_nodes = \
+                [n for n in all_nodes if n.path_from_root[0].name == 'ingredient']
+            cuisine_nodes = \
+                [n for n in all_nodes if n.path_from_root[0].name == 'cuisine']
+            def sort_function(x, y):
+                return cmp(len(y.name), len(x.name)) or cmp(x.depth, y.depth)
+            ingredient_nodes.sort(sort_function)
+            cuisine_nodes.sort(sort_function)
+            nodes = ingredient_nodes + cuisine_nodes
+            self._ontology_match_order = nodes
+        for node in self._ontology_match_order:
+            s = name.find(node.name)  # first character of match
+            e = s + len(node.name) - 1  # second character of match
+            if s != -1 and (s == 0 or name[s-1] == ' ') and (e == len(name)-1 or name[e+1] == ' '):
+                # Check if the nodes with the same name appear as both cuisines
+                # and ingredients, and apply the tiebreaking rules: Cuisines
+                # take precedence over ingredients if and only if the cuisine
+                # name exactly matches the input string.
+                if node.name != name:
+                    # Here, an ingredient will take precedence:
+                    return node
+                else:
+                    nodes_with_name = \
+                        (self._session.query(OntologyNode)
+                              .filter_by(name=name)
+                              .order_by(OntologyNode.depth))
+                    if nodes_with_name.count() == 1:
+                        return node
+                    else:
+                        # Check if a cuisine node exists
+                        matching_cuisine_nodes = \
+                            [n for n in nodes_with_name.all() if
+                             n.path_from_root[0].name == 'cuisine']
+                        if not matching_cuisine_nodes:
+                            return node
+                        else:
+                            return matching_cuisine_nodes[0]
+        else:
+            return None
 
     def add_ontology_node(self, ontology_tuple):
         """
@@ -388,24 +424,18 @@ class Database(object):
         if added_nodes:
             self._session.add(last_node)
             self._session.commit()
-            self._ontology_regex = None  # Expire cached regex due to new node.
+            self._ontology_match_order = None  # Expire cached due to new node.
         else:
             raise DuplicateOntologyNodeException(
                 'OntologyNode %s already exists.' % str(ontology_tuple))
 
-    def get_ontology_nodes(self, name=None, only_root_nodes=False,
-        deepest_first=False):
+    def get_ontology_node(self, name):
         """
-        Get ontology nodes matching the given criteria.
+        Get the ontology node for the given name.  Rather that performing
+        an exact match with the name, this uses a heuristic to find the
+        best-matching OntologyNode.
         """
-        query = self._session.query(OntologyNode)
-        if name != None:
-            query = query.filter_by(name=name)
-        if only_root_nodes:
-            query = query.filter_by(supertype=None)
-        if deepest_first:
-            query = query.order_by(desc(OntologyNode.depth))
-        return query
+        return self._get_closest_ontology_node(normalize_ingredient_name(name))
 
 
 class RecipeIngredientAssociation(Base):
@@ -506,7 +536,7 @@ class OntologyNode(Base):
     >>> db.add_ontology_node(('ingredient', 'fruit', 'orange'))
     >>> db.add_ontology_node(('ingredient', 'vegetable', 'potato'))
 
-    >>> apple = db.get_ontology_nodes('apple').one()
+    >>> apple = db.get_ontology_node('apple')
     >>> apple.is_root()
     False
     >>> [s.name for s in apple.siblings]

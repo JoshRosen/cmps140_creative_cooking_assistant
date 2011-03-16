@@ -3,3 +3,4 @@ lxml>=2.3beta1
 nltk>=2.0b9
 Py4J==0.6
 progressbar>=2.3-dev
+pyparsing>=1.5.5

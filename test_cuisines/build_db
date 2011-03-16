@@ -1,0 +1,1 @@
+python2.6 allrecipes.py --limit=1000 --database=sqlite:///test_database.sqlite /home/josh/allrecipes/*

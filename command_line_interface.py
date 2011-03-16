@@ -11,9 +11,8 @@ PARSER.add_option("--database", dest="database_url",
                   default='sqlite:///test_database.sqlite')
 PARSER.add_option("--logfile", dest="log_filename",
                   default='cookingbot.log')
-
-PROMPT = "> "
-
+PARSER.add_option("--creative", dest="log_filename",
+                  default='cookingbot.log')
 
 def main():
     """
@@ -40,6 +39,7 @@ def main():
         # Chatbot instances should not call exit() themselves.
         # If they need to exit, they should signal so, not exit
         # themselves.
+        PROMPT = bot.prompt # prompt from chatbot, shows mode: creative/regular
         try:
             user_input = raw_input(PROMPT)
         except EOFError:
