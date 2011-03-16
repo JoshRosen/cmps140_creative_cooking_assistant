@@ -1,6 +1,12 @@
 run:
 	python2.6 command_line_interface.py
 
+install_requirements:
+	easy_install nltk
+	python -m nltk.downloader book
+	easy_install lxml==2.3beta1
+	pip install -r requirements.txt
+
 test:
 	rm -f combined_taggers.pkl
 	py.test --doctest-modules -k-scraper

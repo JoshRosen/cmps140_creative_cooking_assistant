@@ -113,12 +113,13 @@ class NaturalLanguageUnderstander(object):
                         for MessageType in self.messageTypes]
             messages = sorted(messageTuples, key=itemgetter(1))
             
-            self.log.debug('%12s = "%s"' % ('nlu.parse_input', messages))
+            self.log.debug('%12s [Confidence] = "%s"' % ('nlu.parse_input', messages))
             
             # Return sorted confident messages which are above threshold
             for MessageType, confidence in messages:
                 if confidence >= self.confidenceThreshold:
                     message = MessageType(user_input, self.generators)
+                    self.log.debug('%12s [Parse] = "%s"' % ('nlu.parse_input', message))
                     validMessages.append(message)
             
         return validMessages
