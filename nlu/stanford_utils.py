@@ -1,6 +1,8 @@
 import os
 import collections
 
+import pdb
+
 from nlu.nluserver import *
 
 # generate parser
