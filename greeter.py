@@ -16,16 +16,21 @@
 import re
 import os
 import os.path
+# from test_nlg import *  
 
+nlg = None
+
+def out(msg):
+    print(msg)
 
 PROMPT = '>'
 
-def nlg(string):
+def out(string):
     """temporary fake nlg - just prints out"""
     print(string)
 
 help_string = """
-Welcome to the %s chatbot.  We have a few minimal features to make your 
+Welcome to the Creative Cooking Agent.  We have a few minimal features to make your 
 experience more pleasant.   The system keeps track of your profile as it
 goes along.  That is it tries to guess what your tastes are, and uses that
 information to make suggestion.  This system is still under development so
@@ -61,7 +66,7 @@ agent_mode = None
 
 def help():
     """Provides help to the user"""
-    nlg(help_string)
+    out(help_string)
   
 def get_feedback():
     """for returning user, asks how they liked recent recipes"""
@@ -107,6 +112,8 @@ agent_records = [
                 'Kathy, the most straightforward and creative chef'],
 ]
 
+def do_exit():
+    exit()
 
 def select_an_agent(user_name):
     """Selects an agent.  Cannot exit without selecting one. 
@@ -125,21 +132,27 @@ def select_an_agent(user_name):
         # show description of each agent.
         cnt += 1
         msg += '\t%d: %s\n' % (cnt, rec[2])
-    nlg(msg)
+    out(msg)
     agent_name = None
     while agent_name is None: # loop until selection happens.
         msg = 'Please type a number for the agent between %d and %d.' \
                 % (1, len(agent_records) + 1)
-        nlg(msg)
+        out(msg)
         agent_no = raw_input(PROMPT)
+        #EYE
+        if re.search('^\s*help\s*$', agent_no):
+            help()
+            continue
+        if re.search('^\s*bye\s*$', agent_no):
+            do_exit()
         m = re.search('(\d)', agent_no) # look for any number. 
         if m: 
             agent_no = int(m.group(0)) - 1
             if agent_no > len(agent_records):
-                nlg('\nInvalid number. Try again.')
+                out('\nInvalid number. Try again.')
                 continue
         else:
-            nlg('\nInvalid number. Try again.')
+            out('\nInvalid number. Try again.')
             continue
         rec = agent_records[agent_no]
         agent_name = rec[0]
@@ -149,7 +162,7 @@ def select_an_agent(user_name):
         f = open(dir_for_user + '/agent', 'w')
         f.write(agent_name + '\n')
         f.close()
-        nlg('Ok you are working with agent %s' % agent_name)
+        out('Ok you are working with agent %s' % agent_name)
     return()
 
 def create_new_user(user_name):
@@ -173,7 +186,7 @@ def create_new_user(user_name):
     dir_for_user = '%s/%s.usr' % (users_dir, user_name)
     if not os.path.exists(dir_for_user):
         os.mkdir(dir_for_user)
-    nlg("\nOk, your user name will be %s\n" % user_name)
+    out("\nOk, your user name will be %s\n" % user_name)
     select_an_agent(user_name)
     return()
 
@@ -198,44 +211,56 @@ def find_user(user_name):
     else:
         return(False)
 
-def startup():
+def startup(nlg):
     welcome = """
     Welcome to the CREATIVE COOKING ADVISOR
     Type help at any time to get helpful hints for using our program. 
     To exit simply say: bye.  For help and hints on using the program type: help.
     """
     global user_name
-    nlg(welcome)
+    out(welcome)
 
     logged_in = False
     while not logged_in:
         # a logged in user has a user_name, a loaded profile and an agent.
         # initially a profile will just consist of an agent. That is it.
-        nlg("Please enter an existing user name or type 'new' to become a "
+        out("Please enter an existing user name or type 'new' to become a "
             + "new user.")
         user_name = raw_input(PROMPT)
+        #EYE
+        if re.search('^\s*help\s*$', user_name):
+            help()
+            continue
+        if re.search('^\s*bye\s*$', user_name):
+            do_exit()
         wants_new_user = re.search("^\s*new\s*$", user_name, re.IGNORECASE)
         
         if wants_new_user: # to exit new user you must say good bye and start over.
             new_user = None
-            nlg('As a new user you will need a user name. Please type one.')
+            out('As a new user you will need a user name. Please type one.')
             while not new_user:
                 user_name = raw_input(PROMPT)
+                #EYE
+                if re.search('^\s*help\s*$', user_name):
+                    help()
+                    continue
+                if re.search('^\s*bye\s*$', user_name):
+                    do_exit()
                 new_user = clean_valid_user_name(user_name)
                 if new_user is None:
-                    nlg(good_user_name_help)
-                    nlg('Please enter a good user name for yourself')
+                    out(good_user_name_help)
+                    out('Please enter a good user name for yourself')
                     continue
     
                 found_user = find_user(new_user)
                 if found_user:
-                    nlg('You have entered a user name that already exists.\n'
+                    out('You have entered a user name that already exists.\n'
                         + 'Please enter a different new user name or type bye '
                         + 'to quit.')
                     new_user = None
                     continue
                 else:
-                    nlg('Thanks, that is a great user name.')
+                    out('Thanks, that is a great user name.')
 
             create_new_user(new_user)
             user_name = new_user
@@ -243,7 +268,7 @@ def startup():
         found_user = find_user(user_name)
         # defines global vars: agent_name, agent_mode, agent_greeter
         if not found_user:
-            nlg('I could not find that user name.')
+            out('I could not find that user name.')
             continue   # starts over trying to get a user name or new.
 
         logged_in = True
@@ -255,13 +280,12 @@ def startup():
         else: # normal
             hand_desc = 'competent hands'
 
-        nlg("Remember that any time you can type 'help' to get helpful hints\n"
+        nlg.change_tone(agent_mode) # cruel, affectionate, normal
+
+        out("Remember that any time you can type 'help' to get helpful hints\n"
             + 'for using our system. Now I will now put you in the '  
             + '%s of chef: %s' % (hand_desc, agent_name)
         )
-        nlg('Your user_name is %s, agent_name is %s, agent_mode is %s'
-            + ' \nand agent_greeting is: %s' 
+        out('Your user_name is %s, agent_name is %s, agent_mode is %s\nand agent_greeting is: %s' 
             % (user_name, agent_name, agent_mode, agent_greeting))
-
-startup() 
 

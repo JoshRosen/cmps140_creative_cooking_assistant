@@ -1,6 +1,7 @@
 """
 Chatbot application object.
 """
+from greeter import *
 import code
 import logging
 from nlg import NaturalLanguageGenerator
@@ -61,6 +62,7 @@ class Chatbot(object):
         self.nlu.register_message(YesNoMessage)
         self.nlu.register_message(SearchMessage)
         self.nlu.register_message(SystemMessage)
+        startup(self.nlg)
 
     def handle_input(self, user_input):
         """
