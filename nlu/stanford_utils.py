@@ -1,7 +1,10 @@
+"""
+Methods which work on the nodes/tree of the stanford parser.
+"""
+
 import os
 import collections
-
-import pdb
+import itertools
 
 from nlu.nluserver import *
 
@@ -142,10 +145,38 @@ def extract_junction_node(parse_tree, node):
             # There has to be more relaible way to do this
             if 'and' in child.toString() or 'or' in child.toString():
                 return child
-def extract_negation_node(parse_tree, none):
+
+def extract_negation_nodes(parse_tree, node):
     """
+    Returns boolean if node is negated. If node not in parse_tree,
+    None is returned.
     
+    Case A: look in parent VP, NP and check for RB = n't or not in children
+    Case B: get first parent NP, and check if sibling right before it is RB
+    (not) or CONJP with RB (not)
     """
+    def extract_rb_negation_nodes(childVPNPs):
+        returns = []
+        for childVPNP in childVPNPs:
+            node = childVPNP.firstChild()
+            nodeStr = get_node_string(node)
+            if nodeStr == 'n\'t' or nodeStr == 'not':
+                returns.append(node)
+        return returns
+    
+    returns = []
+    parentVPs = get_parents_by_type(parse_tree, node, 'VP')
+    parentNPs = get_parents_by_type(parse_tree, node, 'NP')
+    parentVPNPs = itertools.chain(parentVPs, parentNPs)
+    
+    for parentVPNP in parentVPNPs:
+        childVPNPs = get_children_by_type(parentVPNP, 'RB')
+        returns.extend(extract_rb_negation_nodes(childVPNPs))
+        childCONJPs = get_children_by_type(parentVPNP, 'CONJP')
+        for childCONJP in childCONJPs:
+            childRBs = get_children_by_type(childCONJP, 'RB')
+            returns.extend(extract_rb_negation_nodes(childRBs))
+    return returns
     
 def extract_word_modifiers(tokenized_string):
     pass

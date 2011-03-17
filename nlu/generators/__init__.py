@@ -60,7 +60,7 @@ class Generator:
 class Generate_Tokenized_String(Generator):
     def __init__(self, cache_size, generators):
         Generator.__init__(self, cache_size, generators)
-        self.tokenizer = nltk.WordPunctTokenizer()
+        self.tokenizer = nltk.TreebankWordTokenizer()
         
     def _generate(self, raw_input_string, generators):
         return self.tokenizer.tokenize(raw_input_string)
