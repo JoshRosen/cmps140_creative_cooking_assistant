@@ -11,6 +11,14 @@ from nlu.stanford_utils import get_parse_tree
 from nlu.messages.msgutils import extract_words_from_list
 from nlu.messages.msgutils import extract_junction
 from nlu.messages.msgutils import extract_subjects
+from nlu.messages.msgutils import is_negated
+
+def get_preference_range(parseTree, word):
+    if is_negated(parseTree, word):
+        return -1
+    else:
+        return 1
+        
 
 def get_ingredients(tokenized_string, enum=False):
     """
@@ -97,7 +105,7 @@ class SearchMessage(ParsedInputMessage):
     >>> # Test _parse
     >>> sm = SearchMessage('I like apples or carrots.', generators)
     >>> sm.frame['ingredient']
-    [{'descriptor': [], 'relationship': 'or', 'id': 2, 'preference': 0, 'name': 'apples'}, {'descriptor': [], 'relationship': 'or', 'id': 4, 'preference': 0, 'name': 'carrots'}]
+    [{'descriptor': [], 'relationship': 'or', 'id': 2, 'preference': 1, 'name': 'apples'}, {'descriptor': [], 'relationship': 'or', 'id': 4, 'preference': 1, 'name': 'carrots'}]
     >>> sm.frame['dish']
     []
     >>> for ingredient in sm.frame['ingredient']: print ingredient['name']
@@ -107,6 +115,9 @@ class SearchMessage(ParsedInputMessage):
     []
     >>> sm.frame['cuisine']
     []
+    >>> sm = SearchMessage("I don't like apples or carrots.", generators)
+    >>> sm.frame['ingredient']
+    [{'descriptor': [], 'relationship': 'or', 'id': 4, 'preference': -1, 'name': 'apples'}, {'descriptor': [], 'relationship': 'or', 'id': 6, 'preference': -1, 'name': 'carrots'}]
     >>> sm = SearchMessage('I am looking for a breakfast dish.', generators)
     >>> for meal in sm.frame['meal']: print meal['name']
     breakfast
@@ -141,9 +152,9 @@ class SearchMessage(ParsedInputMessage):
         for i, ingredient in get_ingredients(tokenized_string, enum=True):
             frameItem = {}
             frameItem['id'] = i
-            frameItem['name'] =ingredient
+            frameItem['name'] = ingredient
             frameItem['descriptor'] = [] # TODO: siblings JJ
-            frameItem['preference'] = 0 # TODO: RB = not or n't
+            frameItem['preference'] = get_preference_range(parseTree, ingredient)
             frameItem['relationship'] = extract_junction(parseTree, ingredient)
             self.frame['ingredient'].append(frameItem)
             
@@ -154,7 +165,7 @@ class SearchMessage(ParsedInputMessage):
             frameItem['id'] = i
             frameItem['name'] = meal
             frameItem['descriptor'] = [] # TODO: siblings JJ
-            frameItem['preference'] = 0 # TODO: RB = not or n't
+            frameItem['preference'] = extract_junction(parseTree, meal)
             frameItem['relationship'] = extract_junction(parseTree, meal)
             self.frame['meal'].append(frameItem)
             
@@ -164,7 +175,7 @@ class SearchMessage(ParsedInputMessage):
             frameItem['id'] = i
             frameItem['name'] = cuisine
             frameItem['descriptor'] = [] # TODO: siblings JJ
-            frameItem['preference'] = 0 # TODO: RB = not or n't
+            frameItem['preference'] = extract_junction(parseTree, cuisine)
             frameItem['relationship'] = extract_junction(parseTree, cuisine)
             self.frame['cuisine'].append(frameItem)
             
@@ -186,7 +197,7 @@ class SearchMessage(ParsedInputMessage):
             frameItem['id'] = i
             frameItem['name'] = dish
             frameItem['descriptor'] = [] # TODO: siblings JJ
-            frameItem['preference'] = 0 # TODO: RB = not or n't
+            frameItem['preference'] = extract_junction(parseTree, dish)
             frameItem['relationship'] = extract_junction(parseTree, dish)
             self.frame['dish'].append(frameItem)
         
