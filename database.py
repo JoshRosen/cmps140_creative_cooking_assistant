@@ -106,7 +106,8 @@ from sqlalchemy import create_engine, Table, Column, Integer, \
     String, ForeignKey, UniqueConstraint
 from sqlalchemy.sql.expression import between, desc
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import deferred, relationship, sessionmaker, join, backref
+from sqlalchemy.orm import deferred, relationship, sessionmaker, join, \
+    backref, scoped_session
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.interfaces import PoolListener
 
@@ -144,8 +145,10 @@ class Database(object):
                     lambda x: x.decode('ascii', 'ignore').encode()
         self._engine = create_engine(self._database_url,
             listeners=[SetTextFactory()])
-        self._sessionmaker = sessionmaker(bind=self._engine)
-        self._session = self._sessionmaker()
+        self._sessionmaker = scoped_session(sessionmaker(bind=self._engine))
+        # Call classmethods on the scoped session instead of creating session
+        # instances.
+        self._session = self._sessionmaker
         self.create_database_schema()
         self._ontology_match_order = None  # This is cached for performance.
 

@@ -11,16 +11,12 @@ class SystemMessage(ParsedInputMessage):
     exit_keywords = ['adieu.n.01', 'bye.n.01', 'farewell.n.02', 'exit.v.01']
     restart_keywords = ['restart.v.01', 'reload.v.02']
     keywords = exit_keywords + restart_keywords
-                
-    def _parse(self, raw_input_string):
+
+    def _parse(self, raw_input_string, g):
         """
         Fills out message meta and frame attributes
         """
-       
-        tokenizer = nltk.WordPunctTokenizer()
-        tokenized_string = tokenizer.tokenize(raw_input_string)
-        tagger = utils.combined_taggers
-        tagged_string = tagger.tag(tokenized_string)
+        tokenized_string = g.generate_tokenized_string(raw_input_string)
 
         wordActionMap = {'exit':SystemMessage.exit_keywords, 'restart':SystemMessage.restart_keywords}
         for action, keywords in wordActionMap.items():
@@ -29,7 +25,7 @@ class SystemMessage(ParsedInputMessage):
                 self.frame['action'] = action
          
     @staticmethod
-    def confidence(raw_input_string):
+    def confidence(raw_input_string, g):
         return get_keyword_confidence(raw_input_string,
                                       SystemMessage.keywords,
                                       3)

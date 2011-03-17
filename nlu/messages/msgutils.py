@@ -5,6 +5,7 @@ from nlu.stanford_utils import get_parse_tree
 from nlu.stanford_utils import extract_junction_node
 from nlu.stanford_utils import get_node_string
 from nlu.stanford_utils import extract_subject_nodes
+from nlu.stanford_utils import extract_negation_nodes
 
 def extract_subjects(parse_tree, enum=True):
     """
@@ -16,6 +17,43 @@ def extract_subjects(parse_tree, enum=True):
             yield (parse_tree.indexOf(node), word)
         else:
             yield word
+
+def is_negated(parse_tree, word):
+    """
+    
+    >>> import nltk
+    >>> raw_input_string = "I don't want ugly fish."
+    >>> tokenizer = nltk.TreebankWordTokenizer()
+    >>> tokenized_string = tokenizer.tokenize(raw_input_string)
+    >>> tree = get_parse_tree(tokenized_string)
+    >>> is_negated(tree, 'fish')
+    True
+    >>> is_negated(tree, 'want')
+    True
+    
+    >>> raw_input_string = "I like the color of this text but not its putrid smell."
+    >>> tokenizer = nltk.TreebankWordTokenizer()
+    >>> tokenized_string = tokenizer.tokenize(raw_input_string)
+    >>> tree = get_parse_tree(tokenized_string)
+    >>> is_negated(tree, 'smell')
+    True
+    >>> is_negated(tree, 'color')
+    False
+    >>> is_negated(tree, 'cats') == None
+    True
+    """
+    # locate the word node
+    for node in parse_tree.getLeaves():
+        if node.value() == word:
+            # extract the word node
+            nodes = extract_negation_nodes(parse_tree, node)
+            # return type of negation
+            # TODO: do more advanced detection of negation
+            if nodes: # found negation nodes
+                return True
+            else: # no negation nodes found
+                return False
+    return None
 
 def extract_junction(parse_tree, word):
     """

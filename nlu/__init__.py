@@ -9,6 +9,7 @@ from operator import itemgetter
 from data_structures import Message
 from ingredients import is_ingredient, normalize_ingredient_name, \
     extract_ingredient_parts
+from nlu.generators import *
 
 
 def time_to_minutes(time):
@@ -46,11 +47,11 @@ class NaturalLanguageUnderstander(object):
     >>> class EchoMessage(ParsedInputMessage):
     ...     frame = {'echo':None}
     ...     
-    ...     def _parse(self, raw_input_string):
+    ...     def _parse(self, raw_input_string, generators):
     ...         self.frame['echo'] = 'echo: %s' % raw_input_string
     ...     
     ...     @staticmethod
-    ...     def confidence(raw_input_string):
+    ...     def confidence(raw_input_string, generators):
     ...         return 0.0
     
     >>> nlu.register_message(EchoMessage)
@@ -74,6 +75,8 @@ class NaturalLanguageUnderstander(object):
     True
     """
 
+    CACHE_SIZE = 16
+
     def __init__(self, confidenceThreshold, logger):
         """
         Create a new NaturalLanguageUnderstander.
@@ -86,6 +89,13 @@ class NaturalLanguageUnderstander(object):
         self.messageTypes = []
         # set confidence threshold
         self.confidenceThreshold = confidenceThreshold
+        
+        # initiate the generators
+        # NOTE: make sure to add all generators and dependent generators before
+        # use
+        self.generators = Generators()
+        self.generators.add(Generate_Tokenized_String, self.CACHE_SIZE)
+        self.generators.add(Generate_Stanford_Parse_Tree, self.CACHE_SIZE)
 
     def parse_input(self, user_input):
         """
@@ -94,21 +104,22 @@ class NaturalLanguageUnderstander(object):
         validMessages = []
         # If expecting a message, generate it not matter what
         if self.ExpectedMessage != None:
-            message = self.ExpectedMessage(user_input)
+            message = self.ExpectedMessage(user_input, self.generators)
             validMessages.append(message)
         else:
             # Figure out what type of message the user_input is
             messageTuples = [(MessageType,
-                        MessageType.confidence(user_input))
+                        MessageType.confidence(user_input, self.generators))
                         for MessageType in self.messageTypes]
             messages = sorted(messageTuples, key=itemgetter(1))
             
-            self.log.debug('%12s = "%s"' % ('nlu.parse_input', messages))
+            self.log.debug('%12s [Confidence] = "%s"' % ('nlu.parse_input', messages))
             
             # Return sorted confident messages which are above threshold
             for MessageType, confidence in messages:
                 if confidence >= self.confidenceThreshold:
-                    message = MessageType(user_input)
+                    message = MessageType(user_input, self.generators)
+                    self.log.debug('%12s [Parse] = "%s"' % ('nlu.parse_input', message))
                     validMessages.append(message)
             
         return validMessages

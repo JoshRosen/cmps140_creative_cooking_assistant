@@ -6,30 +6,36 @@ import utils
 
 class YesNoMessage(ParsedInputMessage):
     """
-    >>> YesNoMessage.confidence("Hmmm... No thanks.")
+    >>> from nlu.generators import *
+    >>> cache_size = 16
+    >>> generators = Generators()
+    >>> generators.add(Generate_Tokenized_String, cache_size)
+    >>> generators.add(Generate_Stanford_Parse_Tree, cache_size)
+    
+    >>> YesNoMessage.confidence("Hmmm... No thanks.", generators)
     1.0
-    >>> ynm = YesNoMessage("Hmmm... No thanks.")
+    >>> ynm = YesNoMessage("Hmmm... No thanks.", generators)
     >>> ynm.frame['decision']
-    {'decision': False, 'word': 'No', 'id': 2}
+    {'decision': False, 'word': 'No', 'id': 1}
     >>> ynm.getDecision()
     False
-    >>> YesNoMessage.confidence("Ok")
+    >>> YesNoMessage.confidence("Ok", generators)
     1.0
-    >>> ynm = YesNoMessage("Ok")
+    >>> ynm = YesNoMessage("Ok", generators)
     >>> ynm.frame['decision']
     {'decision': True, 'word': 'Ok', 'id': 0}
     >>> ynm.getDecision()
     True
-    >>> YesNoMessage.confidence("Sounds good")
+    >>> YesNoMessage.confidence("Sounds good", generators)
     1.0
-    >>> ynm = YesNoMessage("Sounds good")
+    >>> ynm = YesNoMessage("Sounds good", generators)
     >>> ynm.frame['decision']
     {'decision': True, 'word': 'good', 'id': 1}
     >>> ynm.getDecision()
     True
-    >>> YesNoMessage.confidence("I like turtles?")
+    >>> YesNoMessage.confidence("I like turtles?", generators)
     0.0
-    >>> ynm = YesNoMessage("I like turtles?")
+    >>> ynm = YesNoMessage("I like turtles?", generators)
     >>> ynm.frame['decision'] == None
     True
     >>> ynm.getDecision() == None
@@ -43,9 +49,8 @@ class YesNoMessage(ParsedInputMessage):
     minDistance = 3
         
     
-    def _parse(self, raw_input_string):
-        tokenizer = nltk.WordPunctTokenizer()
-        tokenized_string = tokenizer.tokenize(raw_input_string)
+    def _parse(self, raw_input_string, g):
+        tokenized_string = g.generate_tokenized_string(raw_input_string)
         
         yesDistanceSet = utils.min_synset_distance_in_sentence(
                             YesNoMessage.yes_keywords,
@@ -89,9 +94,8 @@ class YesNoMessage(ParsedInputMessage):
             
         
     @staticmethod
-    def confidence(raw_input_string):
-        tokenizer = nltk.WordPunctTokenizer()
-        tokenized_string = tokenizer.tokenize(raw_input_string)
+    def confidence(raw_input_string, g):
+        tokenized_string = g.generate_tokenized_string(raw_input_string)
         
         yesDistanceSet = utils.min_synset_distance_in_sentence(
                             YesNoMessage.yes_keywords,
