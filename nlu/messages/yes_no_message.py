@@ -16,7 +16,7 @@ class YesNoMessage(ParsedInputMessage):
     1.0
     >>> ynm = YesNoMessage("Hmmm... No thanks.", generators)
     >>> ynm.frame['decision']
-    {'decision': False, 'word': 'No', 'id': 2}
+    {'decision': False, 'word': 'No', 'id': 1}
     >>> ynm.getDecision()
     False
     >>> YesNoMessage.confidence("Ok", generators)
