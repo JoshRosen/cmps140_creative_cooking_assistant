@@ -108,6 +108,7 @@ class DialogueManager(object):
             self.query['include_cuisines'].append(cuisine_dict['name'])
             self.new_criteria['include_cuisines'].append(cuisine_dict['name'])
         self.log.debug('database_query = \n%s' % str(self.query))
+        content_plans = []
         # Check whether the query specifies no criteria.  If the query is
         # empty, display an error message.
         if not any(self.query.values()):
@@ -118,7 +119,6 @@ class DialogueManager(object):
             return content_plans
         # Start building up the content plan to send to the NLG.
         # Summarize the query as a form of grounding.
-        content_plans = []
         content_plans.append(ContentPlanMessage('summarize_query',
                              query=self.query))
         # Search the database and remember the search results.
